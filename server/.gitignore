@@ -1,0 +1,6 @@
+build
+.cache
+*.json
+zappy_server
+unit_tests
+*.pch
