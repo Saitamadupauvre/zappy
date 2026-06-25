@@ -81,7 +81,6 @@ static void get_size_per_tile(server_t *server, client_t *client, size_t *size, 
 
 int handle_look(server_t *server, client_t *client)
 {
-    event_sink_t sink = make_event_sink(server);
     dir_vec_t dirs = {0};
     get_dir_vectors(client->dir, &dirs.fdx, &dirs.fdy, &dirs.rdx, &dirs.rdy);
 
