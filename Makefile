@@ -5,7 +5,7 @@
 ## Makefile
 ##
 
-SERVER_DIR	=	api
+SERVER_DIR	=	server
 GUI_DIR		=	gui
 AI_DIR		=	ai
 
