@@ -39,6 +39,16 @@ class Entity
         }
 
         template<typename T>
+        bool hasBehavior() const {
+            for (const auto& behavior : _behaviors) {
+                if (std::dynamic_pointer_cast<T>(behavior)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        template<typename T>
         void removeBehavior() {
             _behaviors.erase(
                 std::remove_if(_behaviors.begin(), _behaviors.end(),
@@ -61,9 +71,18 @@ class Entity
             }
         }
 
+        void setDormant(bool d) { _dormant = d; }
+        bool isDormant() const { return _dormant; }
+
+        bool operator==(const Entity& other) const { return _id == other._id; }
+        bool operator!=(const Entity& other) const { return !(*this == other); }
+        bool operator==(const EntityID& id) const { return _id == id; }
+        bool operator!=(const EntityID& id) const { return !(*this == id); }
+
     private:
         EntityID _id;
         std::string _type;
+        bool _dormant = false;
         std::vector<std::shared_ptr<behavior::IBehavior>> _behaviors;
 };
 

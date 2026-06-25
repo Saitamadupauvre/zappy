@@ -49,6 +49,7 @@ class CommandExecutor
         void handleServerMessage(const std::string& message);
         void handleUnknownCommand();
         void handleCommandParameterError();
+        void handleServerUptime(unsigned long uptime);
 };
 
 } // namespace zappy

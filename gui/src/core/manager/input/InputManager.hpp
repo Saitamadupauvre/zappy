@@ -7,6 +7,7 @@
 #include <vector>
 #include <functional>
 #include <string>
+#include <variant>
 
 namespace zappy
 {
@@ -22,9 +23,18 @@ enum class InputAction {
     MOVE_RIGHT,
     TOGGLE_POV,
     ZOOM_IN,         ///< Triggered by mouse wheel scrolling up.
-    ZOOM_OUT,        ///< Triggered by mouse wheel scrolling down.
+    ZOOM_OUT,
+    CLICK,
+    CYCLE_LAYOUT,    ///< Cycle through map layout modes (Grid → Torus → …).
+    TOGGLE_TILES,    ///< Toggle tile-grid shading on/off (off = Perlin variation only).
+    FOLLOW_TOGGLE,   ///< Follow selected player / unfollow / free camera.
+    TOGGLE_LEADERBOARD,  ///< Show/hide the team leaderboard overlay.
+    TOGGLE_SETTINGS,     ///< Show/hide the settings panel.
+    ESCAPE,              ///< Context-sensitive escape: close top HUD or open settings.
     UNKNOWN
 };
+
+using InputKey = std::variant<graphic::KeyCode, graphic::MouseBtn>;
 
 /**
  * @class InputManager
@@ -53,26 +63,31 @@ class InputManager
          */
         void handleEvent(const event::Event& event);
 
+        
         // Binding configuration
         void bindActionListener(InputAction action, ActionListener listener);
         void bindTriggerListener(InputAction action, TriggerListener listener);
         void rebindAction(InputAction action, graphic::KeyCode newKey);
+        void addKeyBinding(InputAction action, graphic::KeyCode additionalKey);
 
         // State Queries (Polling)
         bool isActionActive(InputAction action) const;
-        std::vector<graphic::KeyCode> getBoundKeys(InputAction action) const;
-        
+        std::vector<InputKey> getBoundKeys(InputAction action) const; 
+       
         // Status Getters
         MouseStateData getMouseData() const noexcept { return _mouseData; }
         graphic::MouseBtn getLastMouseButton() const noexcept { return _lastMouseBtn; }
 
         std::string actionToString(InputAction action) const;
 
+        // Capture the next keyboard key press and deliver it to cb; clears after one use.
+        void captureNextKey(std::function<void(graphic::KeyCode)> cb);
+
     private:
         ContextLogger _log{"InputManager"};
 
-        std::unordered_map<InputAction, std::vector<graphic::KeyCode>> _keyBindings;
-
+        std::unordered_map<InputAction, std::vector<InputKey>> _keyBindings;
+        
         std::unordered_map<graphic::KeyCode, bool> _keyStates;
         std::unordered_map<InputAction, bool> _actionStates;
     
@@ -81,9 +96,9 @@ class InputManager
 
         MouseStateData _mouseData;
         graphic::MouseBtn _lastMouseBtn = graphic::MouseBtn::LEFT;
+        std::function<void(graphic::KeyCode)> _pendingKeyCapture;
 
         void initDefaultBindings();
-        void addKeyBinding(InputAction action, graphic::KeyCode additionalKey);
         InputAction getActionFromKeyCode(graphic::KeyCode code) const;
         
         void handleKey(graphic::KeyCode code, bool isPressed);

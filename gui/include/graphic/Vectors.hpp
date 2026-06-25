@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 namespace graphic {
 
 /**
@@ -27,6 +29,12 @@ struct Vector3f {
         return (*this - other).length();
     }
 
+    float dot(const Vector3f& b) const { return x*b.x + y*b.y + z*b.z; }
+
+    Vector3f cross(const Vector3f& b) const {
+        return {y*b.z - z*b.y, z*b.x - x*b.z, x*b.y - y*b.x};
+    }
+
     static constexpr Vector3f zero()    { return {0.0f, 0.0f, 0.0f}; }
     static constexpr Vector3f one()     { return {1.0f, 1.0f, 1.0f}; }
     static constexpr Vector3f up()      { return {0.0f, 1.0f, 0.0f}; }
@@ -41,6 +49,11 @@ struct Vector3f {
 struct Vector2f {
     float x; ///< X coordinate.
     float y; ///< Y coordinate.
+
+    Vector2f operator+(const Vector2f& other) const { return {x + other.x, y + other.y}; }
+    Vector2f operator*(float scalar) const { return {x * scalar, y * scalar}; }
+    Vector2f operator/(float scalar) const { return {x / scalar, y / scalar}; }
+
 };
 
 } // namespace graphic

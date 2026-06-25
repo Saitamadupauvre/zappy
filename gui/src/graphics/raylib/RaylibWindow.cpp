@@ -16,9 +16,13 @@ void RaylibWindow::create(int width, int height, const std::string& title, int t
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(width, height, title.c_str());
     SetTargetFPS(targetFps);
+    SetExitKey(0);
 
 }
 
+void     RaylibWindow::setTargetFps(int fps)          { SetTargetFPS(fps); }
+void     RaylibWindow::setFullscreen(bool enable)     { if (enable != IsWindowFullscreen()) ToggleFullscreen(); }
+void     RaylibWindow::setResolution(int w, int h)    { SetWindowSize(w, h); }
 bool     RaylibWindow::isOpen()       const { return !_closed; }
 void     RaylibWindow::close()              { _closed = true; }
 float    RaylibWindow::getDeltaTime() const { return GetFrameTime(); }
@@ -33,6 +37,7 @@ static KeyCode mapRaylibKey(int k)
         case KEY_SPACE:     return KeyCode::KEY_SPACE;
         case KEY_ENTER:     return KeyCode::KEY_ENTER;
         case KEY_BACKSPACE: return KeyCode::KEY_BACKSPACE;
+        case KEY_TAB:       return KeyCode::KEY_TAB;
         case KEY_UP:        return KeyCode::KEY_UP;
         case KEY_DOWN:      return KeyCode::KEY_DOWN;
         case KEY_LEFT:      return KeyCode::KEY_LEFT;
@@ -83,13 +88,31 @@ std::vector<event::Event> RaylibWindow::pollEvents()
             events.push_back(event::KeyEvent{code, true});
     }
 
+    // Emit release events so InputManager resets key state between presses.
+    for (int key = KEY_A; key <= KEY_Z; ++key) {
+        if (IsKeyReleased(key)) {
+            KeyCode code = mapRaylibKey(key);
+            if (code != KeyCode::UNKNOWN)
+                events.push_back(event::KeyEvent{code, false});
+        }
+    }
+    for (int key : {KEY_ESCAPE, KEY_SPACE, KEY_ENTER, KEY_BACKSPACE, KEY_TAB,
+                    KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT}) {
+        if (IsKeyReleased(key)) {
+            KeyCode code = mapRaylibKey(key);
+            if (code != KeyCode::UNKNOWN)
+                events.push_back(event::KeyEvent{code, false});
+        }
+    }
+
     float wheel = GetMouseWheelMove();
     if (wheel != 0.0f)
         events.push_back(event::MouseWheelEvent{wheel});
 
     ::Vector2 delta = GetMouseDelta();
+    ::Vector2 position = GetMousePosition();
     if (delta.x != 0.0f || delta.y != 0.0f)
-        events.push_back(event::MouseMoveEvent{{delta.x, delta.y}});
+        events.push_back(event::MouseMoveEvent{{position.x, position.y}, {delta.x, delta.y}});
 
     return events;
 }

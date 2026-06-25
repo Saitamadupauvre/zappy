@@ -11,11 +11,19 @@ InputManager::InputManager()
 
 void InputManager::initDefaultBindings()
 {
-    _keyBindings[InputAction::MOVE_FORWARD]  = { graphic::KeyCode::KEY_W, graphic::KeyCode::KEY_UP };
-    _keyBindings[InputAction::MOVE_BACKWARD] = { graphic::KeyCode::KEY_S, graphic::KeyCode::KEY_DOWN };
-    _keyBindings[InputAction::MOVE_LEFT]     = { graphic::KeyCode::KEY_A, graphic::KeyCode::KEY_LEFT };
-    _keyBindings[InputAction::MOVE_RIGHT]    = { graphic::KeyCode::KEY_D, graphic::KeyCode::KEY_RIGHT };
-    _keyBindings[InputAction::TOGGLE_POV]    = { graphic::KeyCode::KEY_SPACE };
+    _keyBindings[InputAction::MOVE_FORWARD]  = { InputKey{graphic::KeyCode::KEY_W}, InputKey{graphic::KeyCode::KEY_UP} };
+    _keyBindings[InputAction::MOVE_BACKWARD] = { InputKey{graphic::KeyCode::KEY_S}, InputKey{graphic::KeyCode::KEY_DOWN} };
+    _keyBindings[InputAction::MOVE_LEFT]     = { InputKey{graphic::KeyCode::KEY_A}, InputKey{graphic::KeyCode::KEY_LEFT} };
+    _keyBindings[InputAction::MOVE_RIGHT]    = { InputKey{graphic::KeyCode::KEY_D}, InputKey{graphic::KeyCode::KEY_RIGHT} };
+    _keyBindings[InputAction::TOGGLE_POV]    = { InputKey{graphic::KeyCode::KEY_SPACE} };
+    
+    _keyBindings[InputAction::CLICK]         = { InputKey{graphic::MouseBtn::LEFT} };
+    _keyBindings[InputAction::TOGGLE_TILES]  = { InputKey{graphic::KeyCode::KEY_T} };
+    _keyBindings[InputAction::FOLLOW_TOGGLE] = { InputKey{graphic::KeyCode::KEY_F} };
+    _keyBindings[InputAction::CYCLE_LAYOUT]       = { InputKey{graphic::KeyCode::KEY_G} };
+    _keyBindings[InputAction::TOGGLE_LEADERBOARD] = { InputKey{graphic::KeyCode::KEY_TAB} };
+    _keyBindings[InputAction::TOGGLE_SETTINGS]    = { InputKey{graphic::KeyCode::KEY_O} };
+    _keyBindings[InputAction::ESCAPE]             = { InputKey{graphic::KeyCode::KEY_ESCAPE} };
 
     for (int i = 0; i < static_cast<int>(InputAction::UNKNOWN); ++i)
         _actionStates[static_cast<InputAction>(i)] = false;
@@ -32,7 +40,14 @@ std::string InputManager::actionToString(InputAction action) const
     case InputAction::TOGGLE_POV:    return "TOGGLE_POV";
     case InputAction::ZOOM_IN:       return "ZOOM_IN";
     case InputAction::ZOOM_OUT:      return "ZOOM_OUT";
-    case InputAction::UNKNOWN:       return "UNKNOWN";
+    case InputAction::CLICK:         return "CLICK";
+    case InputAction::CYCLE_LAYOUT:  return "CYCLE_LAYOUT";
+    case InputAction::TOGGLE_TILES:  return "TOGGLE_TILES";
+    case InputAction::FOLLOW_TOGGLE: return "FOLLOW_TOGGLE";
+    case InputAction::TOGGLE_LEADERBOARD: return "TOGGLE_LEADERBOARD";
+    case InputAction::TOGGLE_SETTINGS:    return "TOGGLE_SETTINGS";
+    case InputAction::ESCAPE:             return "ESCAPE";
+    case InputAction::UNKNOWN:            return "UNKNOWN";
     }
     return "INVALID_ACTION";
 }
@@ -76,9 +91,12 @@ void InputManager::addKeyBinding(InputAction action, graphic::KeyCode additional
 InputAction InputManager::getActionFromKeyCode(graphic::KeyCode code) const
 {
     for (const auto& [action, boundKeys] : _keyBindings) {
-        for (graphic::KeyCode key : boundKeys) {
-            if (key == code)
-                return action;
+        for (const auto& variantKey : boundKeys) {
+            if (std::holds_alternative<graphic::KeyCode>(variantKey)) {
+                if (std::get<graphic::KeyCode>(variantKey) == code) {
+                    return action;
+                }
+            }
         }
     }
     return InputAction::UNKNOWN;
@@ -103,8 +121,20 @@ void InputManager::handleEvent(const event::Event& ev)
     );
 }
 
+void InputManager::captureNextKey(std::function<void(graphic::KeyCode)> cb)
+{
+    _pendingKeyCapture = std::move(cb);
+}
+
 void InputManager::handleKey(graphic::KeyCode code, bool isPressed)
 {
+    if (isPressed && _pendingKeyCapture) {
+        auto cb = std::move(_pendingKeyCapture);
+        _pendingKeyCapture = nullptr;
+        cb(code);
+        return;
+    }
+
     InputAction action = getActionFromKeyCode(code);
     if (action == InputAction::UNKNOWN)
         return;
@@ -112,10 +142,14 @@ void InputManager::handleKey(graphic::KeyCode code, bool isPressed)
     _keyStates[code] = isPressed;
 
     bool isActionNowActive = false;
-    for (graphic::KeyCode boundKey : _keyBindings[action]) {
-        if (_keyStates[boundKey]) {
-            isActionNowActive = true;
-            break;
+    for (const auto& variantKey : _keyBindings[action]) {
+        if (std::holds_alternative<graphic::KeyCode>(variantKey)) {
+            graphic::KeyCode boundKey = std::get<graphic::KeyCode>(variantKey);
+            
+            if (_keyStates.count(boundKey) && _keyStates[boundKey]) {
+                isActionNowActive = true;
+                break;
+            }
         }
     }
 
@@ -147,9 +181,20 @@ void InputManager::handleMouse(const event::MouseButtonEvent& e)
     _mouseData.screenPosition = e.screenPos;
     _lastMouseBtn             = e.button;
 
-    _log.info(std::format("Mouse [btn={} pressed={}] screen=({:.1f},{:.1f})",
-        static_cast<int>(e.button), e.pressed,
-        e.screenPos.x, e.screenPos.y));
+    for (auto const& [action, keys] : _keyBindings) {
+        for (auto const& key : keys) {
+            if (std::holds_alternative<graphic::MouseBtn>(key) && 
+                std::get<graphic::MouseBtn>(key) == e.button) {
+                
+                bool previousState = _actionStates[action];
+                _actionStates[action] = e.pressed;
+
+                if (e.pressed && !previousState && _triggerListeners.count(action)) {
+                    for (auto& cb : _triggerListeners[action]) cb();
+                }
+            }
+        }
+    }
 }
 
 void InputManager::handleWheel(float delta)
@@ -165,7 +210,7 @@ void InputManager::handleWheel(float delta)
     }
 }
 
-std::vector<graphic::KeyCode> InputManager::getBoundKeys(InputAction action) const
+std::vector<InputKey> InputManager::getBoundKeys(InputAction action) const
 {
     auto it = _keyBindings.find(action);
     if (it == _keyBindings.end()) return {};

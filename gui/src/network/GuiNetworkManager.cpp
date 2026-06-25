@@ -29,7 +29,6 @@ void GuiNetworkManager::connect()
     } catch (const Socket::SocketException& e) {
         _connected = false;
         _reconnectClock.reset();
-        std::cerr << "GuiNetworkManager: connect failed: " << e.what() << "\n";
     }
 }
 
@@ -87,14 +86,13 @@ void GuiNetworkManager::onWritable(int)
     }
 }
 
-void GuiNetworkManager::handleConnectionClosed(const std::string& reason)
+void GuiNetworkManager::handleConnectionClosed([[maybe_unused]] const std::string& reason)
 {
     _poll.removeSocket(_connection.fd());
     _connected = false;
     _ready = false;
     _allowReconnect = true;
     _reconnectClock.reset();
-    std::cerr << "GuiNetworkManager: " << reason << "\n";
 }
 
 void GuiNetworkManager::processRaw(std::string raw)
@@ -128,6 +126,8 @@ void GuiNetworkManager::handleLine(std::string line)
                 _connection.queueLine("msz");
                 _connection.queueLine("mct");
                 _connection.queueLine("tna");
+                _connection.queueLine("sgt");
+                _connection.queueLine("stu");
                 _hsState = HandshakeState::Ready;
                 _ready = true;
             }
@@ -161,10 +161,8 @@ void GuiNetworkManager::reconnect()
         _hsState = HandshakeState::AwaitWelcome;
         _serverInfoLines = 0;
         _ready = false;
-        std::cerr << "GuiNetworkManager: reconnected\n";
     } catch (const Socket::SocketException& e) {
         _reconnectClock.reset();
-        std::cerr << "GuiNetworkManager: reconnect failed: " << e.what() << "\n";
     }
 }
 

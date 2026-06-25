@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 #include <cmath>
 #include <cstdint>
 #include <optional>
@@ -17,6 +18,8 @@ struct Color4b {
     static constexpr Color4b red()         { return {255,   0,   0, 255}; }
     static constexpr Color4b green()       { return {  0, 255,   0, 255}; }
     static constexpr Color4b blue()        { return {  0,   0, 255, 255}; }
+    static constexpr Color4b yellow() { return {255, 255, 0, 255}; }
+    static constexpr Color4b gray()   { return {200, 200, 200, 255}; }
 };
 
 struct BoundingBox3D { Vector3f min; Vector3f max; };
@@ -25,6 +28,16 @@ struct Rectangle2D   { Vector2f position; Vector2f size; };
 struct MeshHandle    { uint32_t id = 0; bool operator==(const MeshHandle&)    const = default; };
 struct TextureHandle { uint32_t id = 0; bool operator==(const TextureHandle&) const = default; };
 struct FontHandle    { uint32_t id = 0; bool operator==(const FontHandle&)    const = default; };
+struct ModelHandle   { uint32_t id = 0; bool operator==(const ModelHandle&)   const = default; };
+struct GrassFieldHandle { uint32_t id = 0; bool operator==(const GrassFieldHandle&) const = default; };
+struct SkyboxHandle     { uint32_t id = 0; bool operator==(const SkyboxHandle&)     const = default; };
+
+struct ShaderHandle {
+    uint32_t id = 0;
+
+    bool isValid() const { return id != 0; }
+    bool operator==(const ShaderHandle& other) const { return id == other.id; }
+};
 
 struct TextureData {
     std::vector<uint8_t> pixels;
@@ -74,6 +87,73 @@ struct MeshDrawParams {
     }
 };
 
+struct ModelDrawParams {
+    ModelHandle          model;
+    Matrix4x4            transform = Matrix4x4::Identity();
+    Color4b              tint      = Color4b::white();
+    bool                 wireframe = false;
+    // Per-mesh tint overrides. If non-empty, mesh[i] uses meshTints[i] (falls
+    // back to tint when i >= meshTints.size()). Ignored when empty.
+    std::vector<Color4b>    meshTints;
+    // Per-mesh shader overrides. Empty string = use material's default shader.
+    // Alpha < 255 in the corresponding meshTint enables BLEND_ALPHA for that mesh.
+    std::vector<std::string> meshShaders;
+};
+
+struct GrassDrawParams {
+    float    time         = 0.f;
+    Vector2f windDir      = {1.f, 0.f}; // normalized world-XZ direction
+    float    windStrength = 0.15f;
+};
+
+struct WaveDrawParams {
+    MeshHandle groundMesh{};
+    Vector3f   center    = Vector3f::zero();
+    Color4b    color     = Color4b::white();
+    float      elapsed   = 0.f;
+    float      duration  = 2.5f;
+    float      maxRadius = 3.f;
+};
+
+struct RitualDrawParams {
+    MeshHandle groundMesh{};
+    Vector3f   center        = Vector3f::zero();
+    Color4b    color         = Color4b::white();
+    float      time          = 0.f;
+    float      radius        = 1.5f;
+    Vector3f   surfaceNormal = {0.f, 1.f, 0.f};
+};
+
+struct ExplosionDrawParams {
+    Vector3f center        = Vector3f::zero();
+    Vector3f surfaceNormal = {0.f, 1.f, 0.f};
+    Color4b  color         = Color4b::white();
+    float    elapsed       = 0.f;
+    float    duration      = 3.0f;
+    float    maxRadius     = 2.5f;
+    float    maxHeight     = 10.f;
+};
+
+struct AnchorWeights { float x, y; };
+
+enum class Anchor {
+    TopLeft,
+    TopCenter,
+    TopRight,
+    MiddleLeft,
+    Center,
+    MiddleRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight
+};
+
+enum class SizeMode {
+    Auto,
+    Fixed
+};
+
+
 struct SolidFill {
     Color4b color = Color4b::white();
 };
@@ -106,7 +186,7 @@ struct ShapeStyle {
 
 struct TextStyle {
     FontHandle              font;
-    int                     size    = 16;
+    float                     size    = 16;
     Color4b                 color   = Color4b::white();
     std::optional<Stroke>   outline;
     std::optional<ShadowEffect> shadow;
@@ -124,7 +204,7 @@ struct SpriteDrawParams {
 
 enum class KeyCode {
     UNKNOWN = 0,
-    KEY_ESCAPE, KEY_SPACE, KEY_ENTER, KEY_BACKSPACE,
+    KEY_ESCAPE, KEY_SPACE, KEY_ENTER, KEY_BACKSPACE, KEY_TAB,
     KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
 
     KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I,
@@ -171,6 +251,15 @@ template<> struct hash<graphic::TextureHandle> {
 };
 template<> struct hash<graphic::FontHandle> {
     size_t operator()(graphic::FontHandle h) const noexcept { return hash<uint32_t>{}(h.id); }
+};
+template<> struct hash<graphic::ModelHandle> {
+    size_t operator()(graphic::ModelHandle h) const noexcept { return hash<uint32_t>{}(h.id); }
+};
+template<> struct hash<graphic::GrassFieldHandle> {
+    size_t operator()(graphic::GrassFieldHandle h) const noexcept { return hash<uint32_t>{}(h.id); }
+};
+template<> struct hash<graphic::SkyboxHandle> {
+    size_t operator()(graphic::SkyboxHandle h) const noexcept { return hash<uint32_t>{}(h.id); }
 };
 
 } // namespace std

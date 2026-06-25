@@ -12,6 +12,9 @@ public:
     ~RaylibWindow() override;
 
     void     create(int width, int height, const std::string& title, int targetFps = 60) override;
+    void     setTargetFps(int fps) override;
+    void     setFullscreen(bool enable) override;
+    void     setResolution(int width, int height) override;
     bool     isOpen()       const override;
     void     close()              override;
     float    getDeltaTime() const override;

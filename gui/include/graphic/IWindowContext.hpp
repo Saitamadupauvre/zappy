@@ -11,6 +11,9 @@ class IWindowContext {
         virtual ~IWindowContext() = default;
 
         virtual void     create(int width, int height, const std::string& title, int targetFps = 60) = 0;
+        virtual void     setTargetFps(int fps) = 0;
+        virtual void     setFullscreen(bool enable) = 0;
+        virtual void     setResolution(int width, int height) = 0;
         virtual bool     isOpen()       const = 0;
         virtual void     close()              = 0;
         virtual float    getDeltaTime() const = 0;

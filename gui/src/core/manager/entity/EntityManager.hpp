@@ -2,8 +2,10 @@
 
 #include "entity/Entity.hpp"
 #include "event/Event.hpp"
+#include <unordered_map>
 #include <vector>
 #include <memory>
+#include <cstdint>
 
 namespace zappy {
 
@@ -63,8 +65,19 @@ class EntityManager
          */
         void clear();
 
+        void registerTileListener(int x, int y, graphic::EntityID id);
+        void clearTileListeners();
+
     private:
-        std::vector<std::shared_ptr<graphic::Entity>> _entities;
+        /**
+         * @brief Marks the entity matching @p id as selected and clears the
+         *        selection on every other managed entity.
+         */
+        void applySelection(graphic::EntityID id);
+
+        std::vector<std::shared_ptr<graphic::Entity>>                            _entities;
+        std::unordered_map<graphic::EntityID, std::shared_ptr<graphic::Entity>> _entityIndex;
+        std::unordered_map<uint64_t, std::vector<graphic::EntityID>>             _tileListeners;
 };
 
 } // namespace zappy

@@ -1,5 +1,4 @@
 #include "GraphicsContext.hpp"
-#include "core/manager/input/InputManager.hpp"
 #include "event/Event.hpp"
 
 namespace zappy {
@@ -18,14 +17,15 @@ GraphicsContext::GraphicsContext(
     , _fontLoader   (std::move(fontLoader))
 {}
 
-void GraphicsContext::pollAndDispatch(InputManager& input, IScene& scene)
+void GraphicsContext::pollAndDispatch(IScene& scene)
 {
     for (const auto& ev : _window->pollEvents()) {
-        if (std::holds_alternative<event::WindowClosedEvent>(ev)) {
+        bool closed = false;
+        event::on(ev, [&](const event::WindowClosedEvent&) { closed = true; });
+        if (closed) {
             _window->close();
             break;
         }
-        input.handleEvent(ev);
         scene.handleEvent(ev);
     }
 }
@@ -46,10 +46,19 @@ bool GraphicsContext::isOpen() const
     return _window->isOpen();
 }
 
+void GraphicsContext::close()
+{
+    _window->close();
+}
+
 float GraphicsContext::getDeltaTime() const
 {
     return _window->getDeltaTime();
 }
+
+void GraphicsContext::setTargetFps(int fps)         { _window->setTargetFps(fps); }
+void GraphicsContext::setFullscreen(bool enable)    { _window->setFullscreen(enable); }
+void GraphicsContext::setResolution(int w, int h)   { _window->setResolution(w, h); }
 
 graphic::Vector2f GraphicsContext::getWindowSize() const
 {

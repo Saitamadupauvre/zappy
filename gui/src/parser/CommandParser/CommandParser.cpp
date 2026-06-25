@@ -33,6 +33,7 @@ void CommandParser::initKindMap() {
     _stringToKind["smg"] = net::MessageKind::Smg;
     _stringToKind["suc"] = net::MessageKind::Suc;
     _stringToKind["sbp"] = net::MessageKind::Sbp;
+    _stringToKind["stu"] = net::MessageKind::Stu;
 }
 
 net::Message CommandParser::parseLine(const std::string& line) {
@@ -56,10 +57,16 @@ net::Message CommandParser::parseLine(const std::string& line) {
     msg.args = std::vector<std::string>(tokens.begin() + 1, tokens.end());
 
     auto it = _stringToKind.find(tokens[0]);
-    
+
     if (it != _stringToKind.end()) {
         msg.kind = it->second;
         _log.debug("Command mapped successfully: ", tokens[0], " (Args count: ", msg.args.size(), ")");
+    } else if (tokens.size() == 1 && !tokens[0].empty() &&
+               tokens[0].find_first_not_of("0123456789") == std::string::npos) {
+        // bare unsigned long: server uptime response to "stu"
+        msg.kind = net::MessageKind::Stu;
+        msg.args = {tokens[0]};
+        _log.debug("Bare number mapped as stu: ", tokens[0]);
     } else {
         msg.kind = net::MessageKind::Unknown;
         _log.warn("Unknown command received from server: '", tokens[0], "'");

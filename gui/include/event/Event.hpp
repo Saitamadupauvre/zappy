@@ -2,37 +2,27 @@
 
 #include "graphic/Types.hpp"
 #include "util/Overloaded.hpp"
+#include "event/AllEvent.hpp"
+#include <type_traits>
 #include <variant>
-
-namespace graphic { class IRenderer; }
 
 namespace event {
 
-struct KeyEvent         { graphic::KeyCode key; bool pressed; };
-struct MouseButtonEvent { graphic::MouseBtn button; bool pressed;
-                          graphic::Vector2f screenPos; };
-struct MouseMoveEvent   { graphic::Vector2f delta; };
-struct MouseWheelEvent  { float delta; };
-struct WindowClosedEvent  {};
-struct WindowResizedEvent { graphic::Vector2f newSize; };
-struct RenderEvent        { graphic::IRenderer& renderer; graphic::Vector2f viewportSize; };
+template<typename T> struct is_variant : std::false_type {};
+template<typename... Ts> struct is_variant<std::variant<Ts...>> : std::true_type  {};
+template<typename T> inline constexpr bool is_variant_v = is_variant<T>::value;
 
-using Event = std::variant<
-    KeyEvent,
-    MouseButtonEvent,
-    MouseMoveEvent,
-    MouseWheelEvent,
-    WindowClosedEvent,
-    WindowResizedEvent,
-    RenderEvent
->;
-
-template<typename... Handlers>
-auto on(const Event& ev, Handlers&&... handlers)
+template<typename V, typename... Handlers>
+    requires is_variant_v<V>
+void on(const V& ev, Handlers&&... handlers)
 {
-    return std::visit(overloaded{
-        std::forward<Handlers>(handlers)...,
-        [](auto&&) {}
+    auto vis = overloaded{handlers..., [](const auto&){}};
+    std::visit([&](const auto& inner) {
+        using T = std::decay_t<decltype(inner)>;
+        if constexpr (is_variant_v<T>)
+            on(inner, handlers...);
+        else
+            vis(inner);
     }, ev);
 }
 

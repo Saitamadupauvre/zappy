@@ -34,6 +34,7 @@ enum class MessageKind {
     Smg,
     Suc,
     Sbp,
+    Stu,
 };
 
 struct Message {

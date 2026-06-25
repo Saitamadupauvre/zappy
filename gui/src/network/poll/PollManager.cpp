@@ -45,9 +45,10 @@ void PollManager::pollLoop(int timeoutMs)
         throw PollException("poll failed");
 
     for (size_t i = 0; i < pfds.size(); ++i) {
-        if ((pfds[i].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)) && _entries[i].readCb)
+        // readCb may call removeSocket → _entries shrinks; guard before each access
+        if ((pfds[i].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)) && i < _entries.size() && _entries[i].readCb)
             _entries[i].readCb(pfds[i].fd);
-        if (pfds[i].revents & POLLOUT && _entries[i].writeCb)
+        if ((pfds[i].revents & POLLOUT) && i < _entries.size() && _entries[i].writeCb)
             _entries[i].writeCb(pfds[i].fd);
     }
 }

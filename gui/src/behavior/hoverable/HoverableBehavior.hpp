@@ -11,7 +11,9 @@ public:
     HoverableBehavior(HoverCallback onEnter, HoverCallback onLeave) 
         : _onEnter(onEnter), _onLeave(onLeave), _isHovered(false) {}
 
-    void onUpdate(graphic::Entity& owner, float deltaTime) override {}
+    void onUpdate([[maybe_unused]] graphic::Entity& owner, [[maybe_unused]] float deltaTime) override {}
+
+    void onEvent(graphic::Entity& owner, const event::Event& event) override;
 
     bool isHovered() const { return _isHovered; }
 

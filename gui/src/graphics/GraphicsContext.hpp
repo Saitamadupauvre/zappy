@@ -5,7 +5,6 @@
 #include "graphic/IMeshFactory.hpp"
 #include "graphic/ITextureLoader.hpp"
 #include "graphic/IFontLoader.hpp"
-#include "core/manager/input/InputManager.hpp"
 #include "scene/IScene.hpp"
 #include <memory>
 
@@ -26,12 +25,16 @@ public:
     GraphicsContext(const GraphicsContext&)            = delete;
     GraphicsContext& operator=(const GraphicsContext&) = delete;
 
-    void  pollAndDispatch(InputManager& input, IScene& scene);
+    void  pollAndDispatch(IScene& scene);
     void  beginFrame();
     void  endFrame();
     bool  isOpen()       const;
+    void  close();
     float getDeltaTime() const;
 
+    void                     setTargetFps(int fps);
+    void                     setFullscreen(bool enable);
+    void                     setResolution(int width, int height);
     graphic::Vector2f        getWindowSize()     const;
     graphic::IRenderer&      getRenderer();
     graphic::IMeshFactory&   getMeshFactory();

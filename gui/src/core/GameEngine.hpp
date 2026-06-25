@@ -4,7 +4,6 @@
 #include "logger/Logger.hpp"
 #include "locator/Locator.hpp"
 #include "logger/ContextLogger.hpp"
-#include "manager/input/InputManager.hpp"
 #include "network/GuiNetworkManager.hpp"
 #include "executor/CommandExecutor.hpp"
 #include "graphics/GraphicsContext.hpp"
@@ -26,6 +25,8 @@ class GameEngine
 
         int getStatus() const noexcept { return _status; }
 
+        IScene& getCurrentScene() { return *_scene; }
+
     private:
         static constexpr int _successStatus = 0;
         static constexpr int _errorStatus = 84;
@@ -33,7 +34,6 @@ class GameEngine
         int _status = _successStatus;
 
         void initLoggerConfiguration();
-        void setupDefaultInputs();
         void initGraphics();
         void initNetwork();
 
@@ -42,8 +42,6 @@ class GameEngine
 
         CliParser     _cliParser;
         bool          _successfullyParsed = false;
-
-        InputManager  _inputManager;
 
         World         _world;
         CommandExecutor _executor;

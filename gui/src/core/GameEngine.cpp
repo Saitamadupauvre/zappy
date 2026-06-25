@@ -1,4 +1,5 @@
 #include "GameEngine.hpp"
+#include "event/Event.hpp"
 #include "locator/Locator.hpp"
 #include "logger/ConsoleSink.hpp"
 #include "logger/FileSink.hpp"
@@ -9,7 +10,7 @@
 #include "graphics/raylib/RaylibTextureLoader.hpp"
 #include "graphics/raylib/RaylibFontLoader.hpp"
 #include "network/client/GuiConnection.hpp"
-#include "scene/TestCubeScene.hpp"
+#include "scene/WorldScene.hpp"
 
 #include <iostream>
 #include <string>
@@ -41,6 +42,7 @@ void GameEngine::initGraphics()
     auto fontLoader     = std::make_unique<graphic::raylib::RaylibFontLoader>();
 
     window->create(1280, 720, "Zappy");
+    renderer->init();
 
     _graphics = std::make_unique<GraphicsContext>(
         std::move(window),
@@ -50,10 +52,36 @@ void GameEngine::initGraphics()
         std::move(fontLoader)
     );
 
-    _scene = std::make_unique<TestCubeScene>(
+    _scene = std::make_unique<WorldScene>(
         _graphics->getRenderer(),
-        _graphics->getMeshFactory()
+        _graphics->getMeshFactory(),
+        _graphics->getTextureLoader()
     );
+
+    _world.setEventDispatcher([this](const event::WorldEvent& we) {
+        _scene->handleEvent(event::Event{we});
+    });
+
+    static_cast<WorldScene*>(_scene.get())->setSendLine([this](std::string line) {
+        _network->sendLine(std::move(line));
+    });
+
+    auto* ws = static_cast<WorldScene*>(_scene.get());
+
+    ws->setSetFps([this](int fps) {
+        _graphics->setTargetFps(fps);
+    });
+    ws->setOnFovChange(nullptr);
+    ws->setOnFpsOverlay(nullptr);
+    ws->setOnFullscreen([this](bool v) {
+        _graphics->setFullscreen(v);
+    });
+    ws->setOnResolution([this](int w, int h) {
+        _graphics->setResolution(w, h);
+    });
+    ws->setOnExitGame([this]() {
+        _graphics->close();
+    });
 }
 
 void GameEngine::initNetwork()
@@ -72,7 +100,6 @@ GameEngine::GameEngine(int argc, const char **argv)
 {
     _logger.setMinLevel(LogLevel::TRACE);
     Locator::provide(&_logger);
-
     try {
         _successfullyParsed = _cliParser.parseArguments(argc, argv);
     } catch (const CliParserException &e) {
@@ -86,36 +113,14 @@ GameEngine::GameEngine(int argc, const char **argv)
     }
 
     initLoggerConfiguration();
-    setupDefaultInputs();
     initGraphics();
     initNetwork();
 
+    Locator::provide(_scene.get());
+    Locator::provide(&_graphics->getRenderer());
     _log.info("GameEngine fully initialized and ready.");
 }
 
-void GameEngine::setupDefaultInputs()
-{
-    _log.info("Setting up engine diagnostic input listeners...");
-
-    _inputManager.bindActionListener(InputAction::MOVE_FORWARD, [this](bool isActive) {
-        if (isActive)
-            _log.debug("Continuous action feedback: Camera vector moving FORWARD.");
-        else
-            _log.debug("Continuous action feedback: Camera vector STOPPED (Key Released).");
-    });
-
-    _inputManager.bindTriggerListener(InputAction::TOGGLE_POV, [this]() {
-        _log.info("Trigger event captured! Alternating viewport presentation layout.");
-    });
-
-    _inputManager.bindTriggerListener(InputAction::ZOOM_IN, [this]() {
-        _log.info("Zoom event captured: Scrolling UP (Zooming In).");
-    });
-
-    _inputManager.bindTriggerListener(InputAction::ZOOM_OUT, [this]() {
-        _log.info("Zoom event captured: Scrolling DOWN (Zooming Out).");
-    });
-}
 
 void GameEngine::run()
 {
@@ -130,12 +135,13 @@ void GameEngine::run()
         while (_network->tryPopCommand(msg))
             _executor.execute(msg);
 
-        _graphics->pollAndDispatch(_inputManager, *_scene);
+        _graphics->pollAndDispatch(*_scene);
 
         if (!_graphics->isOpen()) break;
 
         _graphics->beginFrame();
-        _scene->update(_world);
+        float dt = _graphics->getDeltaTime();
+        _scene->update(_world, dt);
         _scene->render(_graphics->getRenderer());
         _graphics->endFrame();
     }

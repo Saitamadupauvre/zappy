@@ -2,21 +2,28 @@
 
 #include "behavior/ABehavior.hpp"
 #include "graphic/Types.hpp"
+#include <cstdint>
 
 namespace behavior {
 
 class MovementBehavior : public ABehavior {
 public:
-    MovementBehavior(const graphic::Vector3f& velocity);
-    ~MovementBehavior() override = default;
+    explicit MovementBehavior(uint32_t entityId);
 
-    void setVelocity(const graphic::Vector3f& velocity);
-    void onUpdate(graphic::Entity& owner, float deltaTime) override;
-    void setTarget(const graphic::Vector3f& target);
+    void onUpdate(graphic::Entity& owner, float dt) override;
+    void onEvent(graphic::Entity& owner, const event::Event& ev) override;
+
+    bool isMoving() const { return _moving; }
 
 private:
-    graphic::Vector3f _velocity;
-    graphic::Vector3f _target;
-    bool _finished = false;};
+    void applyMove(graphic::Entity& owner, const graphic::Vector3f& target, float duration);
+
+    uint32_t          _entityId;
+    graphic::Vector3f _startPos{0, 0, 0};
+    graphic::Vector3f _endPos  {0, 0, 0};
+    float             _elapsed  = 0.0f;
+    float             _duration = 0.0f;
+    bool              _moving   = false;
+};
 
 } // namespace behavior

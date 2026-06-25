@@ -1,36 +1,57 @@
 #include "MovementBehavior.hpp"
 #include "behavior/transform/TransformBehavior.hpp"
-#include "Entity.hpp"
+#include "entity/Entity.hpp"
+#include "event/Event.hpp"
 
 namespace behavior {
 
-MovementBehavior::MovementBehavior(const graphic::Vector3f& velocity)
-    : _velocity(velocity) {}
+MovementBehavior::MovementBehavior(uint32_t entityId)
+    : _entityId(entityId) {}
 
-void MovementBehavior::setVelocity(const graphic::Vector3f& velocity) {
-    _velocity = velocity;
-}
-
-void MovementBehavior::setTarget(const graphic::Vector3f& target) {
-    _target = target;
-    _finished = false;
-}
-
-void MovementBehavior::onUpdate(graphic::Entity& owner, float deltaTime) {
-    if (_finished) return;
+void MovementBehavior::onUpdate(graphic::Entity& owner, float dt)
+{
+    if (!_moving) return;
+    _elapsed += dt;
+    float t = (_duration > 0.0f) ? (_elapsed / _duration) : 1.0f;
+    if (t >= 1.0f) { t = 1.0f; _moving = false; }
 
     auto transform = owner.getBehavior<TransformBehavior>();
     if (!transform) return;
 
-    graphic::Vector3f pos = transform->getPosition();
+    transform->setPosition({
+        _startPos.x + (_endPos.x - _startPos.x) * t,
+        _startPos.y + (_endPos.y - _startPos.y) * t,
+        _startPos.z + (_endPos.z - _startPos.z) * t
+    });
+}
 
-    pos = pos + (_velocity * deltaTime);
-    transform->setPosition(pos);
+void MovementBehavior::onEvent(graphic::Entity& owner, const event::Event& ev)
+{
+    event::on(ev,
+        [&](const event::EntityMoveToEvent& e) {
+            if (e.entityId != _entityId) return;
+            applyMove(owner, e.target, e.duration);
+        }
+    );
+}
 
-    if (pos.distanceTo(_target) < 0.1f) {
-        transform->setPosition(_target); // Snap précis
-        _finished = true;
+void MovementBehavior::applyMove(graphic::Entity& owner,
+                                  const graphic::Vector3f& target, float duration)
+{
+    auto transform = owner.getBehavior<TransformBehavior>();
+    if (!transform) return;
+
+    if (duration <= 0.0f) {
+        transform->setPosition(target);
+        _moving = false;
+        return;
     }
+
+    _startPos = transform->getPosition();
+    _endPos   = target;
+    _elapsed  = 0.0f;
+    _duration = duration;
+    _moving   = true;
 }
 
 } // namespace behavior

@@ -27,6 +27,18 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 set(FETCHCONTENT_BASE_DIR ${CMAKE_BINARY_DIR}/_deps CACHE PATH "FetchContent base directory" FORCE)
 
+# macOS: Homebrew's include/lib dirs are not on the default compiler search
+# path. Expose them globally so targets that include <raylib.h> without linking
+# the raylib target directly (e.g. zappy_core via RaylibWindow.hpp) compile.
+if(APPLE)
+    execute_process(COMMAND brew --prefix
+        OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    if(BREW_PREFIX)
+        include_directories(SYSTEM ${BREW_PREFIX}/include)
+        link_directories(${BREW_PREFIX}/lib)
+    endif()
+endif()
+
 add_subdirectory(src)
 
 if(EXISTS ${PROJECT_SOURCE_DIR}/tests/CMakeLists.txt)
