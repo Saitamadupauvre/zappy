@@ -1,4 +1,5 @@
 
+#include "arena.h"
 #include "config.h"
 #include "errors.h"
 
@@ -11,11 +12,12 @@
 #include <stdbool.h>
 #include <getopt.h>
 #include <stdint.h>
+#include <string.h>
 
 #define BANNED_NAME "GRAPHIC"
 
 bool parse_invalid_flag(char arg)
-{
+{ 
     if (arg == 'p' || arg == 'x' || arg == 'y' || arg == 'c' || arg == 'f') {
         fprintf(stderr, "Error [%c]: %s .\n", arg,args_error_to_str(INVALID_ARG_FORMAT));
         return false;
@@ -25,15 +27,14 @@ bool parse_invalid_flag(char arg)
     }
 }
 
-static bool verify_name_copies(prog_cfg_t *prog_cfg, int i)
+static bool check_dups(char *team_names[], int team_count)
 {
-    if (prog_cfg->team_names[i] == NULL) {
-        for (int y = 0; y < i; y++) {
-            free(prog_cfg->team_names[y]);
-            prog_cfg->team_names[y] = NULL;
+    for (int i = 0; i < team_count; i++) {
+        for (int y = i + 1; y < team_count; y++) {
+           if (strcmp(team_names[i], team_names[y]) == 0) {
+               return false;
+           } 
         }
-        free(prog_cfg->team_names);
-        return false;
     }
 
     return true;
@@ -52,7 +53,6 @@ static bool valide_team_name(char *argv[], int team_idx, int team_count)
 
 bool parse_teams(int argc, char *argv[], prog_cfg_t *prog_cfg, bool *arg_check)
 {
-    int start_idx = optind - 1;
     int team_start = optind;
 
     for (; optind < argc && argv[optind][0] != '-'; optind++) {
@@ -68,8 +68,9 @@ bool parse_teams(int argc, char *argv[], prog_cfg_t *prog_cfg, bool *arg_check)
         fprintf(stderr, "Error: %s.\n", args_error_to_str(USAGE_OF_RESERVED_TEAM_NAME));
         return false;
     }
-    //temp malloc before arenas
-    prog_cfg->team_names = malloc(sizeof(char *) * (prog_cfg->team_count + 1));
+
+    size_t team_names_len = (sizeof(char *) * (prog_cfg->team_count + 1)); 
+    prog_cfg->team_names = alloc_mem_arena(&prog_cfg->perm_mem_arena, team_names_len);
     if (prog_cfg->team_names == NULL) {
         fprintf(stderr, "Error: allocation memory for team names.\n");
         return false;
@@ -77,15 +78,22 @@ bool parse_teams(int argc, char *argv[], prog_cfg_t *prog_cfg, bool *arg_check)
     prog_cfg->team_names[prog_cfg->team_count] = NULL;
 
     for (int i = 0; i < prog_cfg->team_count; i++) {
-        prog_cfg->team_names[i] = strndup(argv[start_idx + 1 + i], strlen(argv[start_idx + 1 + i]));
-        if (!verify_name_copies(prog_cfg, i)) { return false; }
+        size_t name_len = strlen(argv[team_start + i]) + 1;
+        prog_cfg->team_names[i] = alloc_mem_arena(&prog_cfg->perm_mem_arena, name_len);
+        if (prog_cfg->team_names[i] == NULL) {
+            fprintf(stderr, "Error: %s.\n", alloc_errors_to_str(STRUCT_ALLOC_FAILED)); 
+            return false;
+        }
+        memcpy(prog_cfg->team_names[i], argv[team_start + i], name_len);
     }
+
+    if (!check_dups(prog_cfg->team_names, prog_cfg->team_count)) { return false; }
 
     *arg_check = true;
     return true;
 }
 
-bool parse_ints(char *integer, int *cfg_field, bool *arg_check, args_errors_t error_type)
+bool parse_ints(char *integer, int *cfg_field, bool *arg_check, ArgsErrors error_type)
 {
     errno = 0;
     char *endptr = NULL;

@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <getopt.h>
 
+
 typedef struct args_list_s {
     bool has_port;
     bool has_width;
@@ -17,10 +18,21 @@ typedef struct args_list_s {
     bool has_frequency;
 } args_list_t;
 
+static bool valide_needed_flags(args_list_t *args_list)
+{
+    if (!args_list->has_port || !args_list->has_width || !args_list->has_height ||
+        !args_list->has_clients || !args_list->has_teams) {
+        fprintf(stderr, "Error: %s.\n", args_error_to_str(MISSING_MANDATORY_FLAG));
+        return false;
+    }
+
+    return true;
+}
+
 bool parse_cmd_line(int argc, char *argv[], prog_cfg_t *prog_cfg)
 {
     args_list_t args = {0};
-    prog_cfg->frequency = 100;
+    prog_cfg->frequency = DEFAULT_FREQUENCY;
     int opt = -1;
     opterr = 0;
 
@@ -43,10 +55,7 @@ bool parse_cmd_line(int argc, char *argv[], prog_cfg_t *prog_cfg)
         }
     }
 
-    if (prog_cfg->team_names != NULL) {
-        for (int i = 0; prog_cfg->team_names[i] != NULL; i++) {
-            printf("Team[%d]: %s.\n", i, prog_cfg->team_names[i]);
-        }
-    }
+    if (!valide_needed_flags(&args)) { return false; }
+
     return true;
 }

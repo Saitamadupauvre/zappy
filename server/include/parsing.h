@@ -13,10 +13,9 @@
 
 typedef struct prog_cfg_s prog_cfg_t;
 typedef struct args_list_s args_list_t;
-typedef args_errors_t args_errors_t;
 
 
-bool parse_ints(char *integer, int *cfg_field, bool *arg_check, args_errors_t error_type);
+bool parse_ints(char *integer, int *cfg_field, bool *arg_check, ArgsErrors error_type);
 bool parse_port(char *port, prog_cfg_t *prog_cfg, bool *arg_check);
 bool parse_teams(int argc, char *argv[], prog_cfg_t *prog_cfg, bool *arg_check);
 bool parse_invalid_flag(char arg);

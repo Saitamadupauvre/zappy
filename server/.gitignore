@@ -4,3 +4,7 @@ build
 zappy_server
 unit_tests
 *.pch
+test_bins
+tests_clients/gui
+tests_clients/player_client
+tests_clients/player
