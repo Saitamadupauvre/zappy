@@ -1,0 +1,67 @@
+{
+  "run": "runs/strategy-v2-s11-30x30-f20-ov8-ds0.85",
+  "n": 512,
+  "policy": "greedy",
+  "width": 30,
+  "height": 30,
+  "n_agents": 6,
+  "freq": 20,
+  "overhead": 8,
+  "density_scale": 1.0,
+  "eval_max_ticks": 12288,
+  "role_dim": 6,
+  "post_l2_bill": {
+    "linemate": 8,
+    "deraumere": 8,
+    "sibur": 10,
+    "mendiane": 5,
+    "phiras": 6,
+    "thystame": 1
+  },
+  "milestones": {
+    "t_all_l2": {
+      "rate": 1.0,
+      "median": 908.0,
+      "median_all": 908.0,
+      "p10": 878.0,
+      "p90": 923.0,
+      "min": 863
+    },
+    "t_bill_ready": {
+      "rate": 1.0,
+      "median": 923.0,
+      "median_all": 923.0,
+      "p10": 893.0,
+      "p90": 1088.0,
+      "min": 878
+    },
+    "t_rally_ready": {
+      "rate": 0.98828125,
+      "median": 1973.0,
+      "median_all": 1973.0,
+      "p10": 1823.0,
+      "p90": 2138.0,
+      "min": 1598
+    },
+    "t_first_l8": {
+      "rate": 0.978515625,
+      "median": 3911.0,
+      "median_all": 3926.0,
+      "p10": 3776.0,
+      "p90": 4091.0,
+      "min": 3626
+    },
+    "t_all6_l8": {
+      "rate": 0.9765625,
+      "median": 3911.0,
+      "median_all": 3926.0,
+      "p10": 3776.0,
+      "p90": 4091.0,
+      "min": 3626
+    }
+  },
+  "violation_rate": 0.013671875,
+  "death_rate": 0.009765625,
+  "bill_progress_mean": 0.8502775430679321,
+  "phase_mean": 2.98828125
+}
