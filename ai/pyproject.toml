@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "AI Part of the Zappy project."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "cryptography>=49.0.0",
+]
 
 [dependency-groups]
 dev = [
@@ -13,3 +15,7 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
+python_files = ["*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

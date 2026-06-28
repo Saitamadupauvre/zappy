@@ -8,9 +8,9 @@ all:	$(AI_BIN)
 $(AI_BIN):
 	@$(PYTHON) -m zipapp $(SRC_DIR) \
 		--main "main:main" \
-		--output ../$(AI_BIN) \
+		--output $(AI_BIN) \
 		--python "/usr/bin/env python3"
-	@chmod +x ../$(AI_BIN)
+	@chmod +x $(AI_BIN)
 
 clean:
 	@find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true

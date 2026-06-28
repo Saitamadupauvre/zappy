@@ -1,57 +1,104 @@
-# Zappy - AI Part
+# zappy_ai
 
-This project uses **`uv`**, an extremely fast Python package installer and resolver written in Rust. It replaces standard tools like `pip`, `pip-tools`, and `virtualenv`, making environment management and execution seamless.
+Autonomous AI client for the Zappy network game. Written in Python, managed with [`uv`](https://github.com/astral-sh/uv).
 
----
-
-## What is `uv`?
-
-`uv` is designed to be a drop-in replacement for common Python development workflows. It automatically manages virtual environments and dependencies behind the scenes without requiring you to manually activate an environment.
-
-### Key Benefits:
-
-- **Blazing Fast**: Up to 10-100x faster than `pip`.
-- **Automatic Environment Management**: `uv run` handles virtual environments automatically.
-- **Single Binary**: No Python dependency required to install `uv` itself.
+> For architecture, strategy, and testing details, see [`docs/ai_documentation.md`](../../docs/ai_documentation.md).
 
 ---
 
-## Setup & Installation
+## Requirements
 
-### 1. Install `uv`
-
-If you don't have `uv` installed on your machine, run the following command:
-
-```bash
-curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
-```
-
-### 2. Project Initialization (Optional)
-
-If dependencies are listed in a `pyproject.toml`, uv will automatically install them on the first run.
-
-To manually sync or install dependencies:
+- Python 3.10+
+- `uv` - install once with:
 
 ```bash
-uv sync
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ---
 
-## Launching the Project
+## Build
 
-First you need to start the server. Open a terminal and run:
+### Via Makefile (recommended)
 
-```bash
-./binaries/zappy_server -p 4242 -x 10 -y 10 -n TEST -c 5
-```
-
-For the Python client, you do **not need** to manually run `source .venv/bin/activate`. `uv` takes care of executing your script inside the correct environment.
-
-To start the application, open a new terminal and simply run:
+From the project root:
 
 ```bash
-uv run src/main.py -p 4242 -n TEST
+make zappy_ai
 ```
 
-> Note: If the virtual environment does not exist yet, `uv run` will automatically create it and install the required dependencies before executing the script.
+### Via uv directly
+
+```bash
+uv sync          # install dependencies into .venv
+```
+
+This produces the `zappy_ai` binary (or prepares the `uv run` environment).
+
+---
+
+## Usage
+
+``` helper
+./zappy_ai -p <port> -n <team> [-h <host>] [--no-encrypt] [-d]
+
+  -p port       Server port (required)
+  -n name       Team name (required) - can pass multiple names
+  -h machine    Server hostname (default: localhost)
+  --no-encrypt  Disable broadcast encryption (useful for debugging)
+  -d / --debug  Enable verbose debug output
+```
+
+---
+
+## Quick Start
+
+Open three terminals:
+
+### 1 - Server
+
+```bash
+./zappy_server -p 4242 -x 20 -y 20 -n MY_TEAM -c 6 -f 100
+```
+
+### 2 - GUI *(optional)*
+
+```bash
+./zappy_gui -p 4242 -h localhost
+```
+
+### 3 - AI
+
+```bash
+# compiled binary
+./zappy_ai -p 4242 -n MY_TEAM -h localhost
+
+# or via uv (no compile step needed)
+uv run ai/main.py -p 4242 -n MY_TEAM -h localhost
+```
+
+The AI is fully autonomous from this point. One instance acts as **Queen**, the rest become **Followers** automatically.
+
+---
+
+## Debug
+
+```bash
+# flag
+./zappy_ai -p 4242 -n MY_TEAM -d
+
+# or env var
+ZAPPY_AI_DEBUG=1 ./zappy_ai -p 4242 -n MY_TEAM
+```
+
+Logs (CSV) are written to `ai/logs/run_<timestamp>/` on each run.
+
+---
+
+## Tests
+
+```bash
+uv run pytest            # all tests
+uv run pytest -v         # verbose
+uv run pytest --cov=ai   # with coverage
+```
