@@ -1,4 +1,17 @@
 /build
+/build_tests
 zappy_gui
 
 _*
+
+# coverage
+coverage*.html
+coverage*.css
+coverage*.js
+*.gcda
+*.gcno
+*.gcov
+
+# logs
+network.log
+*.log
