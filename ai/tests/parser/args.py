@@ -1,11 +1,11 @@
-
 import pytest
 from parser.args import parse_args
+
 
 def test_nominal():
     args = parse_args(["-p", "4242", "-n", "team1", "-h", "localhost"])
     assert args.port == 4242
-    assert args.name == "team1"
+    assert args.names == ["team1"]
     assert args.host == "localhost"
 
 def test_default_host():

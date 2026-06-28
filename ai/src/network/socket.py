@@ -22,6 +22,10 @@ class ClientSocket:
             message += "\n"
         self.sock.sendall(message.encode('utf-8'))
 
+    def has_buffered_line(self) -> bool:
+        """Returns True if a complete line is already in the buffer."""
+        return b"\n" in self._buffer
+
     def has_data(self, timeout: float = 0.0) -> bool:
         """Returns True if socket has data ready to read (non-blocking poll)."""
         ready, _, _ = select.select([self.sock], [], [], timeout)

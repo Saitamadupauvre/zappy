@@ -1,6 +1,7 @@
-from player.enum import Direction, Status, Movement
+from player.enum import Direction, Movement
 from player.map import Map
 from player.vision import Vision, Tile
+from uuid import uuid4
 
 DEPLACEMENT = {
     Direction.NORTH: lambda x, y, w, h: (x, (y - 1) % h),
@@ -17,8 +18,6 @@ class Player:
 
     TIME_UNITS = 126
 
-    # Elevation static table
-    # Format: target_level: {stone_name: required_quantity}
     ELEVATION_REQUIREMENTS = {
         2: {"linemate": 1, "deraumere": 0, "sibur": 0, "mendiane": 0, "phiras": 0, "thystame": 0},
         3: {"linemate": 1, "deraumere": 1, "sibur": 1, "mendiane": 0, "phiras": 0, "thystame": 0},
@@ -33,7 +32,6 @@ class Player:
     level: int
 
     inventory: dict[str, int]
-    status: Status
     vision: Vision
 
     position: tuple[int, int]
@@ -42,11 +40,13 @@ class Player:
     def __init__(self, team_name: str) -> None:
         self.team_name = team_name
         self.level = 1
-        self.status = Status.SURVIVING
         self.map = Map()
         self.vision = None
         self.direction = Direction.NORTH
         self.position = (0, 0)
+        self.available_slot = -1
+        self.has_forked = False
+        self.id = uuid4()
         
         self.inventory = {
             "food": 0,
@@ -178,6 +178,37 @@ class Player:
         if (movement == Movement.FORWARD):
             w, h = map_dim
             self.position = DEPLACEMENT[self.direction](self.position[0], self.position[1], w, h)
+
+    def can_elevate(self) -> bool:
+        """
+        Check if the player has the requirements to level up
+        """
+        target_level = self.level + 1
+        
+        if target_level > 8:
+            return False
+            
+        requirements = self.ELEVATION_REQUIREMENTS.get(target_level)
+        if not requirements:
+            return False
+
+        for stone, qty_needed in requirements.items():
+            qty_owned = self.inventory.get(stone, 0)
+            
+            if qty_owned < qty_needed:
+                return False
+                
+        return True
+
+    def update_available_slot(self, server_response: str) -> None:
+            """
+            Update server available slot for player knowledge
+            """
+            try:
+                cleaned_res = server_response.strip()
+                self.available_slot = int(cleaned_res)
+            except ValueError:
+                print(f"Could not read server response : '{server_response}'")
 
     @property
     def time_to_live(self) -> int:

@@ -13,6 +13,8 @@ class ZappyArgs:
     port: int
     names: list[str]
     host: str
+    no_encrypt: bool
+    debug: bool = False
 
     # --- Constructors --- #
     @classmethod
@@ -33,6 +35,7 @@ class ZappyArgs:
         port = args.port
         names = [n.strip() for n in args.names]
         host = args.host.strip()
+        debug = args.debug
 
         errors: list[str] = []
 
@@ -53,7 +56,7 @@ class ZappyArgs:
         if errors:
             parser.error("\n  ".join(errors))
 
-        return cls(port=port, names=names, host=host)
+        return cls(port=port, names=names, host=host, no_encrypt=args.no_encrypt, debug=debug)
 
     # --- Factory --- #
     @staticmethod
@@ -90,6 +93,20 @@ class ZappyArgs:
             default="localhost",
             metavar="machine",
             help="Hostname of the server (default: localhost)",
+        )
+        parser.add_argument(
+            "--no-encrypt",
+            dest="no_encrypt",
+            action="store_true",
+            default=False,
+            help="Disable the communication encryption system (broadcast)"
+        )
+
+        parser.add_argument(
+            "-d", "--debug",
+            dest="debug",
+            action="store_true",
+            help="Enable verbose debug printing",
         )
         return parser
 

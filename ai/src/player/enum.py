@@ -10,8 +10,3 @@ class Movement(Enum):
     FORWARD = 0
     RIGHT = 1
     LEFT = 2
-
-class Status(Enum):
-    SURVIVING = 1
-    COLLECTING = 2
-    ELEVATING = 3

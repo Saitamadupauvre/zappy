@@ -26,6 +26,12 @@ class Process:
         if pid == 0:  # child
             # Reset SIGCHLD to default so grandchildren are reaped normally
             signal.signal(signal.SIGCHLD, signal.SIG_DFL)
+            # Close inherited file descriptors to prevent closing parent sockets
+            for fd in range(3, 1024):
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
             try:
                 self._func(*self._args)
             except Exception:

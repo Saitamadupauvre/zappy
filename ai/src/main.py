@@ -5,6 +5,7 @@ import sys
 from parser.args import parse_args
 from player.process import Process
 from player.zappyAI import ZappyAI, _reap_children
+from network.encryptor import Encryptor
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
@@ -12,10 +13,12 @@ def main(argv: list[str] | None = None) -> int:
 
     bots = []
     for name in args.names:
+        key = Encryptor.generate_key() if not args.no_encrypt else None
+        
         bot = Process(
             name=f"AI_{name}_1",
             function=ZappyAI.launch_bot,
-            args=[name, args.host, args.port, True]
+            args=[name, args.host, args.port, True, key, args.debug]
         )
         bot.start()
         bots.append(bot)

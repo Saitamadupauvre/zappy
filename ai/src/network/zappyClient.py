@@ -9,6 +9,8 @@ class ZappyClient:
     network: ClientSocket
     incoming_broadcasts: list[tuple[int, str]]
     ejection_directions: list[int]
+    level_updates: list[int]
+    elevation_underway_events: list[bool]
     _pending: deque
 
     def __init__(self, host: str, port: int) -> None:
@@ -17,6 +19,8 @@ class ZappyClient:
         self.port = port
         self.incoming_broadcasts = []
         self.ejection_directions = []
+        self.level_updates = []
+        self.elevation_underway_events = []
         self._pending = deque()
 
     def connect_and_login(self, team_name: str) -> tuple[int, int, int]:
@@ -58,12 +62,15 @@ class ZappyClient:
         if not self._pending:
             raise RuntimeError("No pending command")
 
+        pending_incant = any(cmd.startswith("Incantation") for cmd in self._pending)
+
         while True:
-            select.select([self.network], [], [])
+            if not self.network.has_buffered_line():
+                select.select([self.network], [], [])
             line = self.network.receive_text()
             if line == "dead":
                 raise ConnectionAbortedError("Player is dead")
-            elif _is_event(line):
+            elif _is_event(line, pending_incant):
                 self._store_event(line)
             else:
                 self._pending.popleft()
@@ -71,11 +78,12 @@ class ZappyClient:
 
     def poll_events(self) -> None:
         """Drain all immediately available async events without blocking."""
+        pending_incant = any(cmd.startswith("Incantation") for cmd in self._pending)
         while self.network.has_data():
             line = self.network.receive_line_nonblocking()
             if line is None:
                 break
-            if _is_event(line):
+            if _is_event(line, pending_incant):
                 self._store_event(line)
 
     def _store_event(self, line: str) -> None:
@@ -83,6 +91,14 @@ class ZappyClient:
             self._parse_eject(line)
         elif line.startswith("message "):
             self._parse_broadcast(line)
+        elif line.startswith("Current level:"):
+            try:
+                lvl = int(line.split(":")[1].strip())
+                self.level_updates.append(lvl)
+            except (IndexError, ValueError):
+                pass
+        elif line.startswith("Elevation underway"):
+            self.elevation_underway_events.append(True)
 
     def _parse_eject(self, line: str) -> None:
         try:
@@ -101,15 +117,22 @@ class ZappyClient:
     
     def wait_for_incantation_result(self) -> str:
         while True:
-            select.select([self.network], [], [])
+            if not self.network.has_buffered_line():
+                select.select([self.network], [], [])
             line = self.network.receive_text()
             if line == "dead":
                 raise ConnectionAbortedError("Player is dead")
-            elif _is_event(line):
+            elif _is_event(line, pending_incant=True):
                 self._store_event(line)
             else:
                 return line
 # end of ZappyClient class
 
-def _is_event(line: str) -> bool:
-    return line.startswith("eject:") or line.startswith("message ")
+def _is_event(line: str, pending_incant: bool = False) -> bool:
+    if line.startswith("eject:") or line.startswith("message "):
+        return True
+    if line.startswith("Current level:") and not pending_incant:
+        return True
+    if line.startswith("Elevation underway") and not pending_incant:
+        return True
+    return False
