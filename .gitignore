@@ -1,0 +1,12 @@
+zappy_gui
+zappy_server
+zappy_ai
+binaries
+
+.vscode
+
+note.txt
+*.log
+ai/logs/*
+
+/assets

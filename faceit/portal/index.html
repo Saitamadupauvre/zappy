@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zappy FACEIT</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Zappy FACEIT</h1>
+    <nav id="nav">
+      <button onclick="showSection('auth')">Login / Register</button>
+      <button onclick="showSection('ai')">My AIs</button>
+      <button onclick="showSection('servers')">My Servers</button>
+      <button onclick="showSection('guis')">My GUIs</button>
+      <button onclick="showSection('rooms')">Rooms</button>
+      <button onclick="showSection('live')">Live Matches</button>
+      <button onclick="showSection('history')">Match History</button>
+      <button onclick="showSection('leaderboard')">Leaderboard</button>
+      <span id="user-label"></span>
+      <button id="logout-btn" onclick="logout()" style="display:none">Logout</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Auth -->
+    <section id="auth">
+      <h2>Login</h2>
+      <input id="auth-username" placeholder="Username">
+      <input id="auth-password" type="password" placeholder="Password">
+      <button onclick="login()">Login</button>
+      <button onclick="register()">Register</button>
+      <p id="auth-msg"></p>
+    </section>
+
+    <!-- My AIs -->
+    <section id="ai" style="display:none">
+      <h2>My AIs</h2>
+      <form id="upload-form">
+        <input id="ai-name" placeholder="AI name" required>
+        <input id="ai-file" type="file" required>
+        <button type="submit">Upload</button>
+      </form>
+      <p id="upload-msg"></p>
+      <table id="ai-table">
+        <thead><tr><th>Name</th><th>MMR</th><th>Matches</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- My Servers -->
+    <section id="servers" style="display:none">
+      <h2>My Servers</h2>
+      <form id="server-upload-form">
+        <input id="server-name" placeholder="Server binary name" required>
+        <input id="server-file" type="file" required>
+        <button type="submit">Upload</button>
+      </form>
+      <p id="server-upload-msg"></p>
+      <table id="server-table">
+        <thead><tr><th>Name</th><th>Uploaded</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- My GUIs -->
+    <section id="guis" style="display:none">
+      <h2>My GUIs</h2>
+      <form id="gui-upload-form">
+        <input id="gui-name" placeholder="GUI binary name" required>
+        <input id="gui-file" type="file" required>
+        <button type="submit">Upload</button>
+      </form>
+      <p id="gui-upload-msg"></p>
+      <table id="gui-table">
+        <thead><tr><th>Name</th><th>Uploaded</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Rooms -->
+    <section id="rooms" style="display:none">
+      <h2>Rooms</h2>
+
+      <div id="room-create">
+        <h3>Host a Room</h3>
+        <select id="room-server-select"><option value="">Select server binary</option></select>
+        <select id="room-mode-select">
+          <option value="4">4-player FFA</option>
+          <option value="2">1v1</option>
+        </select>
+        <button onclick="createRoom()">Create Room</button>
+        <p id="room-create-msg"></p>
+      </div>
+
+      <h3>Open Rooms</h3>
+      <button onclick="refreshRooms()">Refresh</button>
+      <div id="rooms-list"></div>
+    </section>
+
+    <!-- Live Matches -->
+    <section id="live" style="display:none">
+      <h2>Live Matches</h2>
+      <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+        <button onclick="refreshLive()">Refresh</button>
+        <select id="live-gui-select"><option value="">Select GUI</option></select>
+      </div>
+      <table id="live-table">
+        <thead><tr><th>Match ID</th><th>Port</th><th>Started</th><th>Spectate</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Match History -->
+    <section id="history" style="display:none">
+      <h2>Match History</h2>
+      <button onclick="refreshHistory()">Refresh</button>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section id="leaderboard" style="display:none">
+      <h2>Leaderboard</h2>
+      <button onclick="refreshLeaderboard()">Refresh</button>
+      <table id="lb-table">
+        <thead><tr><th>Rank</th><th>AI Name</th><th>Player</th><th>MMR</th><th>Matches</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -7,7 +7,7 @@ Issue #
 ### How
 
 ### Testing
-1. **Execution**:
+1. **Execution**: 
 2. **Validation**: 
 
 ### Notes

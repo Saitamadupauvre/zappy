@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "zappy-faceit"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.29",
+    "sqlmodel>=0.0.18",
+    "aiosqlite>=0.20",
+    "python-multipart>=0.0.9",
+    "bcrypt>=4.1",
+    "python-jose[cryptography]>=3.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["orchestrator*"]

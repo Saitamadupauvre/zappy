@@ -22,6 +22,7 @@ zappy_server:
 zappy_gui:
 	$(MAKE) -C $(GUI_DIR)
 	mv $(GUI_DIR)/$(GUI_BIN) .
+	cp -r $(GUI_DIR)/assets .
 
 zappy_ai:
 	$(MAKE) -C $(AI_DIR)
@@ -36,6 +37,7 @@ fclean:
 	$(MAKE) -C $(SERVER_DIR) fclean
 	$(MAKE) -C $(GUI_DIR) fclean
 	$(MAKE) -C $(AI_DIR) fclean
+	rm -rf assets
 
 re:	fclean all
 
