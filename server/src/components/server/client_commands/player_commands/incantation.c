@@ -68,7 +68,7 @@ static bool can_join(client_t *c, client_t *initiator)
         return true;
     }
 
-    return c->state == ALIVE && c->cd <= 0 && c->commands.cmd_count == 0;
+    return c->state == ALIVE;
 }
 
 static void set_participants(server_t *server, client_t *initiator, PlayerState state, int cd)

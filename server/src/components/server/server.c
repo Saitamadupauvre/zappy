@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -137,9 +138,25 @@ static void handle_server_reception(server_t *server)
         inet_ntoa(client_addr.sin_addr), client_fd);
 }
 
+static int next_event_timeout(server_t *server)
+{
+    int min_cd = INT_MAX;
+
+    for (size_t i = 0; i < server->players.size; i++) {
+        client_t *c = &server->players.vdata[i];
+        if (c->cd <= 0 && c->commands.cmd_count > 0)
+            return 0;
+        if (c->cd > 0 && c->cd < min_cd)
+            min_cd = c->cd;
+    }
+
+    return min_cd == INT_MAX ? (1000 / server->prog_cfg->frequency) : min_cd;
+}
+
 static int net_poll(server_t *server)
 {
-    int res = poll(server->pollds.vdata, server->pollds.size, 100);
+    int timeout = next_event_timeout(server);
+    int res = poll(server->pollds.vdata, server->pollds.size, timeout);
 
     if (res < 0) {
         if (errno == EINTR) { return 0; }
