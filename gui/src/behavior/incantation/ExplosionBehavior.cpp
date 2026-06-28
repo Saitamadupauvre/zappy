@@ -197,6 +197,7 @@ void ExplosionBehavior::onUpdate(graphic::Entity&, float dt)
             for (int i = 0; i < N_ROCKETS; ++i)
                 initSparks(_rockets[i], i);
             _phase = Phase::Bursting;
+            if (_onBurst) _onBurst(_center);
         }
     } else {
         float sparkLife  = burstDuration;

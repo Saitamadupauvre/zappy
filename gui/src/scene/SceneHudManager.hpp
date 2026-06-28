@@ -12,6 +12,9 @@
 #include "scene/hud/settings/SettingsPanel.hpp"
 #include "scene/hud/inventory/InventoryPanel.hpp"
 #include "scene/hud/teamstats/TeamStatsPanel.hpp"
+#include "scene/hud/menu/LoadingOverlay.hpp"
+#include "scene/hud/endscreen/EndScreenPanel.hpp"
+#include "behavior/hud/HudContainerBehavior.hpp"
 #include "core/manager/input/InputManager.hpp"
 #include "core/manager/hud/HudManager.hpp"
 #include "graphic/IRenderer.hpp"
@@ -43,6 +46,12 @@ public:
     void setOnSkyMode(std::function<void(int)> fn);
     void setOnGrass(std::function<void(bool)> fn);
     void setOnExitGame(std::function<void()> fn);
+    void setOnSoundVolume(std::function<void(float)> fn);
+    void setOnMusicVolume(std::function<void(float)> fn);
+    void setOnBackToMenu(std::function<void()> fn);
+    void setOnEndScreenBackToMenu(std::function<void()> fn);
+    void showLoading();
+    void onTileLoaded(int received, int total);
     void setOnSelectTeamClick(std::function<void(const std::string&)> fn) { _onSelectTeamClick = std::move(fn); }
     void setVotedTeam(const std::string& team);
     void setTimeUnit(int tu);
@@ -56,6 +65,7 @@ public:
     void onPlayerLevelChanged(uint32_t id, int level);
     void onBroadcast(uint32_t id, const std::string& message);
     void onEntitySelected(uint32_t id, const std::string& team, int x, int y);
+    void clearSelectedPlayer();
     void onPlayerInventoryChanged(uint32_t id, const Resources& inv);
     void onToggleLeaderboard();
     void onWorldInfo(std::function<WorldInfoProvider::Stats()> computeStats);
@@ -64,6 +74,9 @@ public:
     void onTeamSelected(const std::string& team, int playerCount, int maxLevel,
                         float avgLevel, const Resources& totalResources);
     void onTeamDeselected();
+    void onGameEnded(const std::string& winnerTeam, double elapsedSecs, int totalPlayers,
+                     const std::string& votedTeam);
+
     void pushPopup(const std::string& title, const std::string& subtitle,
                    graphic::Color4b color = {255, 255, 255, 255});
 
@@ -79,6 +92,7 @@ public:
     InventoryPanel&    inventory()   { return _inventory; }
     TeamStatsPanel&    teamStats()   { return _teamStats; }
     WorldInfoPanel&    worldInfo()   { return _worldInfo; }
+    EndScreenPanel&    endScreen()   { return _endScreen; }
 
     std::string getPlayerTeam(uint32_t id) const;
 
@@ -95,8 +109,13 @@ private:
     InventoryPanel    _inventory;
     TeamStatsPanel    _teamStats;
     WorldInfoPanel    _worldInfo;
+    LoadingOverlay    _loading;
+    EndScreenPanel    _endScreen;
 
-    std::unordered_map<uint32_t, std::string> _playerTeams;
+    HudManager* _hud = nullptr;
+    std::unordered_map<uint32_t, std::string>   _playerTeams;
+    std::unordered_map<std::string, graphic::Color4b> _teamColors;
+    std::vector<std::shared_ptr<behavior::HudContainerBehavior>> _hiddenForEndScreen;
     std::function<void(const std::string&)>   _onSelectTeamClick;
 
     PlayerState _selectedPlayerState;

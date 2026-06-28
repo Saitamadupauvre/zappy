@@ -55,6 +55,7 @@ public:
     SkyboxHandle uploadSkybox() override;
     void         drawSkybox(SkyboxHandle handle, float time) override;
     void         unloadSkybox(SkyboxHandle handle) override;
+    void         setSkyboxShader(SkyboxHandle handle, const std::string& shaderName) override;
 
     ModelHandle loadModel(const std::string& path) override;
     MeshHandle  meshFromModel(ModelHandle model) override;
@@ -108,6 +109,7 @@ private:
 
     struct SkyboxEntry {
         ::Model model{};
+        std::string currentShaderName{"skybox"};
     };
     std::unordered_map<SkyboxHandle, SkyboxEntry> _skyboxes;
     SkyboxHandle _skyboxIdCounter = {1};

@@ -28,7 +28,7 @@ public:
                graphic::ITextureLoader& loader);
 
     void onTeamAdded(const std::string& name, graphic::Color4b color);
-    void onPlayerAdded(uint32_t id, const std::string& team);
+    void onPlayerAdded(uint32_t id, const std::string& team, int level = 1);
     void onPlayerRemoved(uint32_t id);
     void onPlayerLevelChanged(uint32_t id, int level);
     void toggle();
@@ -64,7 +64,7 @@ private:
     std::shared_ptr<behavior::HudContainerBehavior>          _ctrlContainer;
     std::function<void()>                                    _onWorldInfoClick;
 
-    graphic::TextureHandle _avatarTex{};
+    graphic::TextureHandle _medalTex[4]{};
     bool                   _visible      = false;
     int                    _scrollOffset = 0;
     std::string            _votedTeam;

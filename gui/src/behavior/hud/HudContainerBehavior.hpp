@@ -7,6 +7,7 @@
 #include "hud/IHudProvider.hpp"
 #include "graphic/Types.hpp"
 #include "LayoutEngine.hpp"
+#include "i18n/I18n.hpp"
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -40,6 +41,7 @@ public:
     void setVisible(bool visible, float duration = -1.f);
     void setSizeMode(graphic::SizeMode mode)    { _sizeMode = mode; }
     void setFixedSize(const graphic::Vector2f& size) { _fixedSize = size; }
+    void setFullscreen(bool v) { _fullscreen = v; }
     void setScrollable(bool scrollable)         { _isScrollable = scrollable; }
     void scrollToBottom()                       { _scrollOffsetY = 1e9f; }
     void scrollToTop()                          { _scrollOffsetY = 0.f; }
@@ -57,8 +59,9 @@ public:
     void setAnimationEnabled(bool e)   { _animEnabled  = e; }
 
     static AnchorWeights getAnchorWeights(Anchor anchor);
-    void onUpdate([[maybe_unused]] graphic::Entity& owner,
-                  [[maybe_unused]] float deltaTime) override {}
+    void onUpdate([[maybe_unused]] graphic::Entity& owner, float deltaTime) override {
+        _cursorBlink += deltaTime;
+    }
 
     void onEvent(graphic::Entity& owner, const event::Event& ev) override;
     void draw(graphic::IRenderer& renderer, const graphic::Matrix4x4& transform) override;
@@ -77,6 +80,14 @@ private:
         float                      max;
         std::function<void(float)> onChange;
         std::function<void(float)> onRelease;
+    };
+
+    struct InputArea {
+        graphic::Vector2f pos;
+        graphic::Vector2f size;
+        int               elementIndex;
+        std::function<void(const std::string&)> onChange;
+        std::function<void(const std::string&)> onConfirm;
     };
 
     std::shared_ptr<hud::IHudProvider> _provider;
@@ -102,7 +113,7 @@ private:
     void tickAnimation(float dt);
 
     hud::LayoutEngine::Type _layoutType = hud::LayoutEngine::Type::Vertical;
-    float _padding     = 8.0f;
+    float _padding     = 4.0f;
     int   _groupStride = 0;
 
     bool _hasBackground = false;
@@ -115,6 +126,7 @@ private:
     bool _isVisible       = true;
     bool _isWorldSpaceTag = false;
     bool _isScrollable    = false;
+    bool _fullscreen      = false;
 
     enum class AnimState { Hidden, FadingIn, Visible, FadingOut };
     AnimState         _animState        = AnimState::Visible;
@@ -137,7 +149,10 @@ private:
     graphic::Vector2f    _lastMousePos;
     std::vector<ButtonArea>  _buttonAreas;
     std::vector<SliderArea>  _sliderAreas;
-    int  _draggingSlider = -1;
+    std::vector<InputArea>   _inputAreas;
+    int  _draggingSlider   = -1;
+    int  _focusedInput     = -1;
+    float _cursorBlink     = 0.f;
 
     std::string _title;
     float       _titleFontSize = 14.0f;

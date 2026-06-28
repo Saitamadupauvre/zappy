@@ -2,6 +2,7 @@
 
 #include "ISettingsSection.hpp"
 #include "graphic/Types.hpp"
+#include "i18n/I18n.hpp"
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -13,7 +14,7 @@ class PikminClickerSection : public ISettingsSection {
 public:
     void setTexture(graphic::TextureHandle tex) { _tex = tex; }
 
-    std::string sectionTitle() const override { return "Pikmin Clicker"; }
+    std::string sectionTitle() const override { return i18n::tr(i18n::key::SEC_PIKMIN); }
 
     std::vector<behavior::hud::HudElement> getHudElements() const override
     {
@@ -22,13 +23,13 @@ public:
         std::vector<behavior::hud::HudElement> elems;
 
         elems.push_back({behavior::hud::TextData{
-            std::to_string(static_cast<long long>(_pikmin)) + " Pikmin",
+            std::to_string(static_cast<long long>(_pikmin)) + " " + i18n::tr(i18n::key::PIKMIN),
             18.f, {255, 220, 80, 255}
         }});
 
         if (_perSecond > 0.f) {
-            char buf[64];
-            std::snprintf(buf, sizeof(buf), "%.2f per second", _perSecond);
+            char buf[128];
+            std::snprintf(buf, sizeof(buf), "%.2f %s", _perSecond, i18n::tr(i18n::key::PER_SECOND));
             elems.push_back({behavior::hud::TextData{buf, 11.f, {160, 255, 160, 200}}});
         }
 
@@ -42,28 +43,28 @@ public:
             }});
         } else {
             elems.push_back({behavior::hud::ButtonData{
-                "Throw Pikmin!", 14.f, 200.f, 50.f,
+                i18n::tr(i18n::key::THROW_PIKMIN), 14.f, 200.f, 50.f,
                 {255, 255, 255, 255}, {80, 60, 20, 220}, {160, 120, 40, 235},
                 [this]() { _pikmin += _perClick; }
             }});
         }
 
         {
-            char buf[64];
-            std::snprintf(buf, sizeof(buf), "+%.0f per throw", _perClick);
+            char buf[128];
+            std::snprintf(buf, sizeof(buf), "+%.0f %s", _perClick, i18n::tr(i18n::key::PER_THROW));
             elems.push_back({behavior::hud::TextData{buf, 10.f, {200, 200, 200, 160}}});
         }
 
-        elems.push_back({behavior::hud::TextData{"── Upgrades ──", 11.f, {150, 170, 230, 190}}});
+        elems.push_back({behavior::hud::TextData{i18n::tr(i18n::key::UPGRADES), 11.f, {150, 170, 230, 190}}});
 
-        _pushAutoUpgrade(elems, "Red Pikmin",     10.0,    0.1f,  _redCount);
-        _pushAutoUpgrade(elems, "Yellow Pikmin",  60.0,    0.5f,  _yellowCount);
-        _pushAutoUpgrade(elems, "Blue Pikmin",    300.0,   3.f,   _blueCount);
-        _pushAutoUpgrade(elems, "Rock Pikmin",    2000.0,  15.f,  _rockCount);
-        _pushAutoUpgrade(elems, "Winged Pikmin",  10000.0, 80.f,  _wingedCount);
+        _pushAutoUpgrade(elems, i18n::tr(i18n::key::RED_PIKMIN),    10.0,    0.1f,  _redCount);
+        _pushAutoUpgrade(elems, i18n::tr(i18n::key::YELLOW_PIKMIN), 60.0,    0.5f,  _yellowCount);
+        _pushAutoUpgrade(elems, i18n::tr(i18n::key::BLUE_PIKMIN),   300.0,   3.f,   _blueCount);
+        _pushAutoUpgrade(elems, i18n::tr(i18n::key::ROCK_PIKMIN),   2000.0,  15.f,  _rockCount);
+        _pushAutoUpgrade(elems, i18n::tr(i18n::key::WINGED_PIKMIN), 10000.0, 80.f,  _wingedCount);
 
-        _pushClickUpgrade(elems, "Captain Olimar", 500.0,  2.f,  _captainBought);
-        _pushClickUpgrade(elems, "Onion",          5000.0, 5.f,  _onionBought);
+        _pushClickUpgrade(elems, i18n::tr(i18n::key::CAPTAIN_OLIMAR), 500.0,  2.f,  _captainBought);
+        _pushClickUpgrade(elems, i18n::tr(i18n::key::ONION),          5000.0, 5.f,  _onionBought);
 
         return elems;
     }
@@ -102,7 +103,7 @@ private:
         double cost = baseCost * std::pow(1.15, count);
         bool canAfford = (_pikmin >= cost);
         char label[128];
-        std::snprintf(label, sizeof(label), "%s [%d]  %.0f Pikmin", name, count, cost);
+        std::snprintf(label, sizeof(label), "%s [%d]  %.0f %s", name, count, cost, i18n::tr(i18n::key::PIKMIN));
         elems.push_back({behavior::hud::ButtonData{
             label, 11.f, 260.f, 30.f,
             {255, 255, 255, 255},
@@ -122,13 +123,13 @@ private:
     {
         if (bought) {
             char label[128];
-            std::snprintf(label, sizeof(label), "%s (owned)  x%.0f click", name, mult);
+            std::snprintf(label, sizeof(label), "%s (%s)  x%.0f %s", name, i18n::tr(i18n::key::OWNED), mult, i18n::tr(i18n::key::X_CLICK));
             elems.push_back({behavior::hud::TextData{label, 10.f, {100, 200, 100, 160}}});
             return;
         }
         bool canAfford = (_pikmin >= cost);
         char label[128];
-        std::snprintf(label, sizeof(label), "%s  %.0f Pikmin  (x%.0f click)", name, cost, mult);
+        std::snprintf(label, sizeof(label), "%s  %.0f %s  (x%.0f %s)", name, cost, i18n::tr(i18n::key::PIKMIN), mult, i18n::tr(i18n::key::X_CLICK));
         elems.push_back({behavior::hud::ButtonData{
             label, 11.f, 260.f, 30.f,
             {255, 255, 255, 255},

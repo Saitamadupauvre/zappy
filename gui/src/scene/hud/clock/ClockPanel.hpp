@@ -19,6 +19,7 @@ public:
     void setUptime(unsigned long ticks);
     void setTimeUnit(int tu);
     void tick(float dt);
+    double getElapsedSeconds() const;
 
 private:
     std::shared_ptr<ClockProvider>                    _provider;

@@ -53,6 +53,7 @@ target_sources(zappy_graphics PRIVATE
     RaylibTextureLoader.cpp
     RaylibFontLoader.cpp
     RaylibShaderManager.cpp
+    RaylibAudioManager.cpp
 )
 
 target_link_libraries(zappy_graphics PUBLIC ${ZAPPY_RAYLIB_TARGET})

@@ -22,6 +22,9 @@ void RaylibRenderer::init() {
     _shaderManager.load("grass",   "assets/shaders/grass.vs",   "assets/shaders/grass.fs");
     _shaderManager.load("crystal", "assets/shaders/crystal.vs", "assets/shaders/crystal.fs");
     _shaderManager.load("skybox",  "assets/shaders/skybox.vs",  "assets/shaders/skybox.fs");
+    _shaderManager.load("earth",       "assets/shaders/earth.vs",       "assets/shaders/earth.fs");
+    _shaderManager.load("minimal_sky", "assets/shaders/minimal_sky.vs", "assets/shaders/minimal_sky.fs");
+    _shaderManager.load("city",        "assets/shaders/city.vs",        "assets/shaders/city.fs");
     _shaderManager.load("wave",    "assets/shaders/wave.vs",    "assets/shaders/wave.fs");
     _shaderManager.load("ritual",    "assets/shaders/ritual.vs",    "assets/shaders/ritual.fs");
     _shaderManager.load("explosion", "assets/shaders/explosion.vs", "assets/shaders/explosion.fs");
@@ -314,8 +317,15 @@ void RaylibRenderer::drawSkybox(SkyboxHandle handle, float time)
     auto it = _skyboxes.find(handle);
     if (it == _skyboxes.end()) return;
     auto& entry = it->second;
-    int timeLoc = _shaderManager.getCachedLocation("skybox", "time");
+    const std::string& sname = entry.currentShaderName;
+    int timeLoc = _shaderManager.getCachedLocation(sname, "time");
     SetShaderValue(entry.model.materials[0].shader, timeLoc, &time, SHADER_UNIFORM_FLOAT);
+    if (sname == "city") {
+        auto vp = getViewportSize();
+        float res[2] = { vp.x, vp.y };
+        int resLoc = _shaderManager.getCachedLocation("city", "iResolution");
+        SetShaderValue(entry.model.materials[0].shader, resLoc, res, SHADER_UNIFORM_VEC2);
+    }
     rlDisableBackfaceCulling();
     rlDisableDepthMask();
     DrawModel(entry.model,
@@ -332,6 +342,14 @@ void RaylibRenderer::unloadSkybox(SkyboxHandle handle)
     it->second.model.materials[0].shader = {}; // shader owned by _shaderManager
     UnloadModel(it->second.model);
     _skyboxes.erase(it);
+}
+
+void RaylibRenderer::setSkyboxShader(SkyboxHandle handle, const std::string& shaderName)
+{
+    auto it = _skyboxes.find(handle);
+    if (it == _skyboxes.end()) return;
+    it->second.model.materials[0].shader = _shaderManager.getRawShader(shaderName);
+    it->second.currentShaderName = shaderName;
 }
 
 void RaylibRenderer::drawWave(const WaveDrawParams& p)

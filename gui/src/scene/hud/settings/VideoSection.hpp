@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ISettingsSection.hpp"
+#include "i18n/I18n.hpp"
 #include <functional>
 #include <tuple>
 
@@ -14,7 +15,7 @@ public:
     void setOnFullscreen(std::function<void(bool)> fn)     { _onFullscreen = std::move(fn); }
     void setOnResolution(std::function<void(int,int)> fn)  { _onResolution = std::move(fn); }
 
-    std::string sectionTitle() const override { return "Video"; }
+    std::string sectionTitle() const override { return i18n::tr(i18n::key::SEC_VIDEO); }
     std::vector<behavior::hud::HudElement> getHudElements() const override;
 
 private:

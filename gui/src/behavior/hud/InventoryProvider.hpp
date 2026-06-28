@@ -4,6 +4,7 @@
 #include "hud/HudElements.hpp"
 #include "world/WorldTypes.hpp"
 #include "graphic/Types.hpp"
+#include "i18n/I18n.hpp"
 #include <array>
 #include <cstdint>
 #include <string>

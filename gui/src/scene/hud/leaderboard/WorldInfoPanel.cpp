@@ -10,7 +10,7 @@ void WorldInfoPanel::setup(HudManager& hud)
 
     auto entity = EntityBuilder(hud, WORLD_INFO_HUD_ID, "world_info")
         .hud().container(_provider)
-        .hud().layout(behavior::hud::LayoutEngine::Type::Vertical, 6.0f)
+        .hud().layout(behavior::hud::LayoutEngine::Type::Vertical, 3.0f)
         .hud().anchor(graphic::Anchor::TopRight)
         .hud().anchorOffset({10.0f, 175.0f})
         .hud().background(true, {10, 10, 20, 220}, {60, 160, 220, 240})

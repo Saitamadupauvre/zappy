@@ -1,4 +1,7 @@
 #include "WorldScene.hpp"
+#include "locator/Locator.hpp"
+#include "audio/IAudioManager.hpp"
+#include "i18n/I18n.hpp"
 #include "behavior/wave/WaveBroadcastBehavior.hpp"
 #include "behavior/incantation/RitualCircleBehavior.hpp"
 #include "behavior/incantation/ExplosionBehavior.hpp"
@@ -21,10 +24,13 @@
 namespace zappy {
 
 WorldScene::WorldScene(graphic::IRenderer& renderer, graphic::IMeshFactory& meshFactory,
-                       graphic::ITextureLoader& textureLoader)
+                       graphic::ITextureLoader& textureLoader,
+                       audio::IAudioManager& audioMgr)
 {
     _renderer      = &renderer;
     _textureLoader = &textureLoader;
+    _audioMgr      = &audioMgr;
+    _audioMgr->init();
 
     _playerFactory.init(renderer, meshFactory);
     _eggFactory.init(renderer, meshFactory);
@@ -100,6 +106,9 @@ WorldScene::WorldScene(graphic::IRenderer& renderer, graphic::IMeshFactory& mesh
             _camCtrl.onFollowToggle(_selectedPlayerId, _entities, _hud);
     });
 
+    _hudMgr.setOnSoundVolume([this](float v) { if (_audioMgr) _audioMgr->setSoundVolume(v); });
+    _hudMgr.setOnMusicVolume([this](float v) { if (_audioMgr) _audioMgr->setMusicVolume(v); });
+
     _hudMgr.setOnIncantationEffect([this](bool v) { _showIncantation = v; });
     _hudMgr.setOnBroadcastCircle([this](bool v)  { _showBroadcastCircle = v; });
     _hudMgr.setOnEggHatchAnim([this](bool v)      { _showEggHatchAnim = v; });
@@ -107,7 +116,12 @@ WorldScene::WorldScene(graphic::IRenderer& renderer, graphic::IMeshFactory& mesh
         _showTeamColorTags = v;
         _playerFactory.setShowTeamColor(v);
     });
-    _hudMgr.setOnSkyMode([this](int idx)          { _skyboxReady = (idx == 0); });
+    _hudMgr.setOnSkyMode([this](int idx) {
+        static constexpr const char* SKY_SHADERS[] = { "skybox", "earth", "minimal_sky", "city", nullptr };
+        _skyboxReady = (idx < 4);
+        if (_skyboxReady)
+            if (auto* r = zappy::Locator::getRenderer()) r->setSkyboxShader(_skyboxHandle, SKY_SHADERS[idx]);
+    });
     _hudMgr.setOnGrass([this](bool v) {
         _showGrass = v;
         auto e = _entities.getEntity(MapGroundFactory::GROUND_ENTITY_ID);
@@ -128,7 +142,8 @@ void WorldScene::setSendLine(std::function<void(std::string)> fn)
         if (_sendLine) _sendLine(s);
         if (s.rfind("sst ", 0) == 0) {
             std::string tu = s.size() > 4 ? s.substr(4) : s;
-            _hudMgr.pushPopup("Speed changed", "Simulation: " + tu + "t/s",
+            _hudMgr.pushPopup(i18n::tr(i18n::key::POPUP_SPEED_TITLE),
+                              std::string(i18n::tr(i18n::key::POPUP_SPEED_SUB)) + ": " + tu + "t/s",
                               {100, 180, 255, 255});
         }
     });
@@ -152,6 +167,11 @@ void WorldScene::setOnFpsOverlay(std::function<void(bool)> fn)
 void WorldScene::setOnFullscreen(std::function<void(bool)> fn)  { _hudMgr.setOnFullscreen(std::move(fn)); }
 void WorldScene::setOnResolution(std::function<void(int,int)> fn){ _hudMgr.setOnResolution(std::move(fn)); }
 void WorldScene::setOnExitGame(std::function<void()> fn)         { _hudMgr.setOnExitGame(std::move(fn)); }
+void WorldScene::setOnBackToMenu(std::function<void()> fn)
+{
+    _hudMgr.setOnEndScreenBackToMenu(fn);
+    _hudMgr.setOnBackToMenu(std::move(fn));
+}
 
 
 void WorldScene::refreshTeamDetailIfOpen(uint32_t playerId)
@@ -175,6 +195,10 @@ void WorldScene::onWorldResized(const event::WorldResizedEvent& e)
     _worldBuilder.clear(_worldW, _worldH);
     _worldW = e.width;
     _worldH = e.height;
+
+    _tilesTotal    = _worldW * _worldH;
+    _tilesReceived = 0;
+    _hudMgr.showLoading();
 
     rebuildWorld();
     _tileSystem.repositionAll();
@@ -259,7 +283,8 @@ void WorldScene::onPlayerAdded(const event::PlayerAddedEvent& e)
     _playerFactory.spawn(_entities, p, color);
     _tileSystem.onPlayerAdded(p.id, p.x, p.y, p.orientation);
     _hudMgr.onPlayerAdded(p, color);
-    _hudMgr.pushPopup("Player joined!", "ID " + std::to_string(p.id) + "  Team: " + p.team,
+    _hudMgr.pushPopup(i18n::tr(i18n::key::POPUP_JOIN_TITLE),
+                      std::string(i18n::tr(i18n::key::POPUP_JOIN_SUB)) + " " + std::to_string(p.id) + "  " + std::string(i18n::tr(i18n::key::TEAM)) + ": " + p.team,
                       {100, 220, 130, 255});
     refreshTeamDetailIfOpen(p.id);
 }
@@ -269,6 +294,8 @@ void WorldScene::onPlayerMoved(const event::PlayerMovedEvent& e)
     _tileSystem.onPlayerMoved(e.id, e.x, e.y, e.orientation);
     _hudMgr.onPlayerMoved(e.id, _hudMgr.getPlayerTeam(e.id), e.x, e.y);
     refreshTeamDetailIfOpen(e.id);
+    if (_audioMgr)
+        _audioMgr->playAt(audio::SoundKind::WALK, _tileMap.standPos(e.x, e.y));
 }
 
 void WorldScene::onPlayerRemoved(const event::PlayerRemovedEvent& e)
@@ -276,11 +303,14 @@ void WorldScene::onPlayerRemoved(const event::PlayerRemovedEvent& e)
     _log.debug(std::format("Player {} removed", e.id));
     _tileSystem.onPlayerRemoved(e.id);
     _entities.removeEntity(e.id);
+    _hud.removeEntity(e.id + 10000);
     _playerInventories.erase(e.id);
     _playerFactory.removePlayer(e.id);
     _hudMgr.onPlayerRemoved(e.id, _selectedPlayerId);
     refreshTeamDetailIfOpen(e.id);
-    _hudMgr.pushPopup("Player died", "ID " + std::to_string(e.id), {220, 80, 80, 255});
+    _hudMgr.pushPopup(i18n::tr(i18n::key::POPUP_DIED_TITLE),
+                      std::string(i18n::tr(i18n::key::POPUP_DIED_SUB)) + " " + std::to_string(e.id),
+                      {220, 80, 80, 255});
 
     if (_selectedPlayerId == e.id) {
         _selectedPlayerId = 0;
@@ -305,6 +335,8 @@ void WorldScene::onBroadcast(const event::PlayerBroadcastEvent& e)
             if (cit != _teamColors.end()) color = cit->second;
         }
         spawnWave(center, color);
+        if (_audioMgr)
+            _audioMgr->playAt(audio::SoundKind::BROADCAST, center);
     }
 }
 
@@ -354,10 +386,14 @@ void WorldScene::spawnRituals(const event::IncantationStartEvent& e)
     auto entity = _entities.createEntity(ritualId, "ritual");
     entity->addBehavior<behavior::RitualCircleBehavior>(
         _entities, ritualId, groundMesh, center, normal, SPACING, e.x, e.y);
+    if (_audioMgr)
+        _audioMgr->playAt(audio::SoundKind::INCANTATION, center);
 }
 
 void WorldScene::spawnExplosion(const event::IncantationEndEvent& e)
 {
+    if (_audioMgr)
+        _audioMgr->stopSound(audio::SoundKind::INCANTATION);
     if (!e.success || !_showIncantation) return;
 
     static constexpr float DURATION   = 1.0f;
@@ -408,19 +444,17 @@ void WorldScene::spawnExplosion(const event::IncantationEndEvent& e)
         entity->addBehavior<behavior::ExplosionBehavior>(
             _entities, id, pos, normal, COLORS[i],
             DURATION, MAX_RADIUS, MAX_HEIGHT, i * 0.15f);
+        if (_audioMgr) {
+            auto eb = entity->getBehavior<behavior::ExplosionBehavior>();
+            if (eb) eb->setOnBurst([this, pos](graphic::Vector3f p) {
+                _audioMgr->playAt(audio::SoundKind::EXPLOSION, p);
+            });
+        }
     }
 }
 
-void WorldScene::onTeamSelected(const std::string& team)
+void WorldScene::refreshTeamStats(const std::string& team)
 {
-    if (_selectedTeam == team) {
-        clearTeamSelection();
-        return;
-    }
-    clearTeamSelection();
-    _selectedTeam = team;
-
-    // Collect all player IDs in team
     auto players = _hudMgr.leaderboard().getPlayersForTeam(team);
     std::vector<uint32_t> ids;
     ids.reserve(players.size());
@@ -444,18 +478,24 @@ void WorldScene::onTeamSelected(const std::string& team)
     }
     if (!players.empty()) avgLevel /= static_cast<float>(players.size());
 
-    // Clear single-player selection
-    _selectedPlayerId = 0;
-    _hudMgr.playerInfo().clear();
-    _hudMgr.chat().close();
-    _hudMgr.inventory().hide();
-
-    // Outline all team members
     _entities.handleEvent(event::Event{event::LogicEvent{
         event::TeamSelectEvent{std::move(ids), true}}});
-
-    // Show team stats panel
     _hudMgr.onTeamSelected(team, static_cast<int>(players.size()), maxLevel, avgLevel, total);
+}
+
+void WorldScene::onTeamSelected(const std::string& team)
+{
+    if (_selectedTeam == team) {
+        clearTeamSelection();
+        return;
+    }
+    clearTeamSelection();
+    _selectedTeam = team;
+
+    _selectedPlayerId = 0;
+    _hudMgr.clearSelectedPlayer();
+
+    refreshTeamStats(team);
 }
 
 void WorldScene::clearTeamSelection()
@@ -475,9 +515,7 @@ void WorldScene::onEntitySelected(const event::EntitySelectedEvent& e)
     if (team.empty()) {
         _selectedPlayerId = 0;
         if (_camera.isFollowing()) _camera.exitFollow();
-        _hudMgr.playerInfo().clear();
-        _hudMgr.chat().close();
-        _hudMgr.inventory().hide();
+        _hudMgr.clearSelectedPlayer();
         return;
     }
 
@@ -571,8 +609,8 @@ void WorldScene::onPlayerLevelChanged(const event::PlayerLevelChangedEvent& e)
 {
     _hudMgr.onPlayerLevelChanged(e.id, e.level);
     refreshTeamDetailIfOpen(e.id);
-    _hudMgr.pushPopup("Level up!",
-                      "ID " + std::to_string(e.id) + "  Level " + std::to_string(e.level),
+    _hudMgr.pushPopup(i18n::tr(i18n::key::POPUP_LEVEL_TITLE),
+                      std::string(i18n::tr(i18n::key::POPUP_JOIN_SUB)) + " " + std::to_string(e.id) + "  " + std::string(i18n::tr(i18n::key::POPUP_LEVEL_SUB)) + " " + std::to_string(e.level),
                       {255, 210, 60, 255});
 }
 
@@ -602,12 +640,36 @@ void WorldScene::handleEvent(const event::Event& ev)
             if (!_selectedTeam.empty()) {
                 auto team = _hudMgr.getPlayerTeam(e.id);
                 if (team == _selectedTeam)
-                    onTeamSelected(_selectedTeam);
+                    refreshTeamStats(_selectedTeam);
+            }
+        },
+        [&](const event::TileChangedEvent&) {
+            if (_tilesTotal > 0) {
+                ++_tilesReceived;
+                _hudMgr.onTileLoaded(_tilesReceived, _tilesTotal);
+            }
+        },
+        [&](const event::ResourceCollectedEvent& e) {
+            if (_audioMgr && _tileSystem.hasTile(e.playerId)) {
+                auto [tx, ty] = _tileSystem.getTile(e.playerId);
+                _audioMgr->playAt(audio::SoundKind::PICKUP, _tileMap.standPos(tx, ty));
+            }
+        },
+        [&](const event::ResourceDroppedEvent& e) {
+            if (_audioMgr && _tileSystem.hasTile(e.playerId)) {
+                auto [tx, ty] = _tileSystem.getTile(e.playerId);
+                _audioMgr->playAt(audio::SoundKind::PICKUP, _tileMap.standPos(tx, ty));
             }
         },
         [&](const event::MapLayoutCycleEvent&)    { onMapLayoutCycle(); },
         [&](const event::TileShadingToggleEvent&) { onTileShadingToggle(); },
-        [&](const event::ServerUptimeEvent& e)    { _hudMgr.onServerUptime(e.uptimeSeconds); }
+        [&](const event::ServerUptimeEvent& e)    { _hudMgr.onServerUptime(e.uptimeSeconds); },
+        [&](const event::GameEndedEvent& e)       {
+            int playerCount = _worldPtr ? static_cast<int>(_worldPtr->getPlayers().size()) : 0;
+            double elapsed  = _hudMgr.clock().getElapsedSeconds();
+            _hudMgr.onGameEnded(e.winnerTeam, elapsed, playerCount,
+                                _hudMgr.leaderboard().votedTeam());
+        }
     );
     Scene::handleEvent(ev);
 }
@@ -616,6 +678,12 @@ void WorldScene::update(const World& world, float dt)
 {
     _worldPtr = &world;
     _lastDt = dt > 0.f ? dt : _lastDt;
+
+    if (_audioMgr) {
+        _audioMgr->setListenerPos(_camera.toCameraState().position);
+        _audioMgr->update(dt);
+    }
+
     _camera.update(dt, _inputManager);
     _camCtrl.update(dt, _selectedPlayerId, _entities);
 

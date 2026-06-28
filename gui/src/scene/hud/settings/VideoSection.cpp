@@ -1,4 +1,4 @@
-#include "VideoSection.hpp" 
+#include "VideoSection.hpp"
 
 namespace zappy {
 
@@ -13,7 +13,7 @@ std::vector<behavior::hud::HudElement> VideoSection::getHudElements() const
             labels.push_back(label);
 
         elems.push_back({behavior::hud::SelectData{
-            .label        = "Frame Rate",
+            .label        = i18n::tr(i18n::key::FRAME_RATE),
             .options      = std::move(labels),
             .currentIndex = _fpsIdx,
             .isOpen       = _fpsOpen,
@@ -41,7 +41,7 @@ std::vector<behavior::hud::HudElement> VideoSection::getHudElements() const
         }
 
         elems.push_back({behavior::hud::SelectData{
-            .label        = "Resolution",
+            .label        = i18n::tr(i18n::key::RESOLUTION),
             .options      = std::move(labels),
             .currentIndex = _resIdx,
             .isOpen       = _resOpen && !_fullscreen,
@@ -62,7 +62,7 @@ std::vector<behavior::hud::HudElement> VideoSection::getHudElements() const
     elems.push_back({behavior::hud::RectData{260.f, 1.f, {80,90,130,80}, {80,90,130,80}}});
 
     elems.push_back({behavior::hud::ToggleData{
-        .label    = "Fullscreen",
+        .label    = i18n::tr(i18n::key::FULLSCREEN),
         .value    = _fullscreen,
         .width    = 260.f,
         .height   = 32.f,
@@ -78,7 +78,7 @@ std::vector<behavior::hud::HudElement> VideoSection::getHudElements() const
     elems.push_back({behavior::hud::RectData{260.f, 1.f, {80,90,130,80}, {80,90,130,80}}});
 
     elems.push_back({behavior::hud::ToggleData{
-        .label    = "Show FPS Counter",
+        .label    = i18n::tr(i18n::key::SHOW_FPS),
         .value    = _fpsOverlay,
         .width    = 260.f,
         .height   = 32.f,
@@ -91,7 +91,7 @@ std::vector<behavior::hud::HudElement> VideoSection::getHudElements() const
 
     elems.push_back({behavior::hud::RectData{260.f, 1.f, {80,90,130,80}, {80,90,130,80}}});
 
-    elems.push_back({behavior::hud::TextData{"Field of View", 11.f, {190, 200, 230, 200}}});
+    elems.push_back({behavior::hud::TextData{i18n::tr(i18n::key::FIELD_OF_VIEW), 11.f, {190, 200, 230, 200}}});
     elems.push_back({behavior::hud::SliderData{
         .min      = 45.f,
         .max      = 120.f,

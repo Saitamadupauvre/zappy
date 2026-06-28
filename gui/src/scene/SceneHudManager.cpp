@@ -1,10 +1,13 @@
 #include "SceneHudManager.hpp"
+#include "event/LogicEvent.hpp"
+#include "event/Event.hpp"
 
 namespace zappy {
 
 void SceneHudManager::setup(HudManager& hud, graphic::IRenderer& renderer,
                              graphic::ITextureLoader& loader, InputManager& input)
 {
+    _hud = &hud;
     _popup.setup(hud, renderer, loader);
     _leaderboard.setup(hud, renderer, loader);
     _teamDetail.setup(hud);
@@ -16,10 +19,33 @@ void SceneHudManager::setup(HudManager& hud, graphic::IRenderer& renderer,
     _resourceInfo.setup(hud, renderer, loader);
     _speed.setup(hud);
     _settings.setup(hud, input, renderer, loader);
+    _settings.setOnLanguageChange([this](i18n::Language) {
+        if (_hud)
+            _hud->handleEvent(event::Event{event::LogicEvent{event::LanguageChangedEvent{}}});
+    });
     _inventory.setup(hud, renderer, loader);
     _teamStats.setup(hud);
     _worldInfo.setup(hud);
     _clock.setup(hud);
+    _loading.setup(hud);
+    _endScreen.setup(hud);
+    _loading.show();
+}
+
+void SceneHudManager::showLoading()
+{
+    _loading.show();
+    _loading.setProgress(0.f);
+    _loading.setText("Loading world\xe2\x80\xa6");
+}
+
+void SceneHudManager::onTileLoaded(int received, int total)
+{
+    if (total <= 0) return;
+    float ratio = static_cast<float>(received) / static_cast<float>(total);
+    _loading.setProgress(ratio);
+    if (received >= total)
+        _loading.hide();
 }
 
 void SceneHudManager::setSendLine(std::function<void(std::string)> fn)
@@ -44,6 +70,9 @@ void SceneHudManager::setOnTeamColorTags(std::function<void(bool)> fn)    { _set
 void SceneHudManager::setOnSkyMode(std::function<void(int)> fn)           { _settings.setOnSkyMode(std::move(fn)); }
 void SceneHudManager::setOnGrass(std::function<void(bool)> fn)            { _settings.setOnGrass(std::move(fn)); }
 void SceneHudManager::setOnExitGame(std::function<void()> fn)             { _settings.setOnExitGame(std::move(fn)); }
+void SceneHudManager::setOnSoundVolume(std::function<void(float)> fn)     { _settings.setOnSoundVolume(std::move(fn)); }
+void SceneHudManager::setOnMusicVolume(std::function<void(float)> fn)     { _settings.setOnMusicVolume(std::move(fn)); }
+void SceneHudManager::setOnBackToMenu(std::function<void()> fn)           { _settings.setOnBackToMenu(std::move(fn)); }
 
 void SceneHudManager::setTimeUnit(int tu)
 {
@@ -64,6 +93,7 @@ void SceneHudManager::tick(float dt)
 
 void SceneHudManager::onTeamAdded(const std::string& name, graphic::Color4b color)
 {
+    _teamColors[name] = color;
     _leaderboard.onTeamAdded(name, color);
     _leaderboard.setOnDetailsClick(name, [this, name]() {
         openTeamDetail(name);
@@ -81,7 +111,7 @@ void SceneHudManager::onPlayerAdded(const PlayerState& p, graphic::Color4b /*col
 {
     _playerTeams[p.id] = p.team;
     _chat.setPlayerTeam(p.id, p.team);
-    _leaderboard.onPlayerAdded(p.id, p.team);
+    _leaderboard.onPlayerAdded(p.id, p.team, p.level);
 
     // refresh team detail if open for this team
     auto players = _leaderboard.getPlayersForTeam(p.team);
@@ -131,6 +161,14 @@ void SceneHudManager::onPlayerInventoryChanged(uint32_t id, const Resources& inv
 void SceneHudManager::onBroadcast(uint32_t id, const std::string& message)
 {
     _chat.onBroadcast(id, message);
+}
+
+void SceneHudManager::clearSelectedPlayer()
+{
+    _hasSelectedPlayer = false;
+    _playerInfo.clear();
+    _chat.close();
+    _inventory.hide();
 }
 
 void SceneHudManager::onEntitySelected(uint32_t id, const std::string& team,
@@ -211,6 +249,64 @@ void SceneHudManager::onToggleLeaderboard()
 void SceneHudManager::onWorldInfo(std::function<WorldInfoProvider::Stats()> computeStats)
 {
     _worldInfo.toggle(computeStats());
+}
+
+void SceneHudManager::setOnEndScreenBackToMenu(std::function<void()> fn)
+{
+    _endScreen.setOnBackToMenu(std::move(fn));
+}
+
+void SceneHudManager::onGameEnded(const std::string& winnerTeam, double elapsedSecs,
+                                   int totalPlayers, const std::string& votedTeam)
+{
+    graphic::Color4b teamColor = {255, 215, 0, 255};
+    auto it = _teamColors.find(winnerTeam);
+    if (it != _teamColors.end()) teamColor = it->second;
+
+    EndScreenProvider::Info info;
+    info.winnerTeam   = winnerTeam;
+    info.teamColor    = teamColor;
+    info.voteCorrect  = !votedTeam.empty() && (votedTeam == winnerTeam);
+    info.elapsedSecs  = elapsedSecs;
+    info.totalPlayers = totalPlayers;
+
+    // Hide every other HUD panel, saving which were visible so we can restore them
+    _hiddenForEndScreen.clear();
+    if (_hud) {
+        for (auto& entity : _hud->getEntities()) {
+            auto id = entity->getID();
+            if (id == EndScreenPanel::ID || id == EndScreenPanel::RETURN_ID) continue;
+            auto container = entity->getBehavior<behavior::HudContainerBehavior>();
+            if (container && container->isVisible()) {
+                container->setVisible(false);
+                _hiddenForEndScreen.push_back(container);
+            }
+        }
+    }
+
+    // "Look at world": restore other HUDs (end screen handles hiding itself + showing return btn)
+    _endScreen.setOnLookAtWorld([this]() {
+        for (auto& c : _hiddenForEndScreen)
+            c->setVisible(true);
+    });
+
+    // "View Results": re-hide other HUDs when returning to end screen
+    _endScreen.setOnReturnToEndScreen([this]() {
+        _hiddenForEndScreen.clear();
+        if (_hud) {
+            for (auto& entity : _hud->getEntities()) {
+                auto id = entity->getID();
+                if (id == EndScreenPanel::ID || id == EndScreenPanel::RETURN_ID) continue;
+                auto container = entity->getBehavior<behavior::HudContainerBehavior>();
+                if (container && container->isVisible()) {
+                    container->setVisible(false);
+                    _hiddenForEndScreen.push_back(container);
+                }
+            }
+        }
+    });
+
+    _endScreen.show(info);
 }
 
 void SceneHudManager::pushPopup(const std::string& title, const std::string& subtitle,

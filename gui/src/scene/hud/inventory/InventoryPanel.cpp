@@ -9,9 +9,18 @@ void InventoryPanel::setup(HudManager& hud, graphic::IRenderer& renderer,
 {
     _provider = std::make_shared<InventoryProvider>();
 
+    static constexpr const char* RESOURCE_PATHS[InventoryProvider::RESOURCE_COUNT] = {
+        "assets/images/food/apple.jpg",
+        "assets/images/ores/linemate.jpg",
+        "assets/images/ores/deraumere.jpg",
+        "assets/images/ores/sibur.jpg",
+        "assets/images/ores/mendiane.jpg",
+        "assets/images/ores/phiras.jpg",
+        "assets/images/ores/thystame.png"
+    };
     for (int i = 0; i < InventoryProvider::RESOURCE_COUNT; ++i) {
         try {
-            auto texData = loader.loadFromFile("assets/images/pikmin.jpg");
+            auto texData = loader.loadFromFile(RESOURCE_PATHS[i]);
             _textures[i] = renderer.uploadTexture(texData);
         } catch (...) {
             _log.warn("Failed to load resource texture ", i);

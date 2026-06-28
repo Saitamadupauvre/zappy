@@ -18,7 +18,6 @@ public:
         uint64_t storeV = _store ? _store->getVersion() : 0;
         if (storeV == _lastStoreVersion && !_cache.empty()) return _cache;
         _lastStoreVersion = storeV;
-        ++_version;
 
         _cache.clear();
         if (!_store || _team.empty()) return _cache;
@@ -43,7 +42,7 @@ public:
         return _cache;
     }
 
-    uint64_t getVersion() const override { return _version; }
+    uint64_t getVersion() const override { return _store ? _store->getVersion() : 0; }
 
 private:
     zappy::TeamChatStore* _store          = nullptr;
@@ -51,6 +50,5 @@ private:
     uint32_t              _viewedPlayerId = 0;
 
     mutable std::vector<behavior::hud::HudElement> _cache;
-    mutable uint64_t _version          = 1;
     mutable uint64_t _lastStoreVersion = 0;
 };

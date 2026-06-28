@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ISettingsSection.hpp"
+#include "i18n/I18n.hpp"
 #include <functional>
 
 namespace zappy {
@@ -14,11 +15,11 @@ public:
     void setOnSkyMode(std::function<void(int)> fn)              { _onSkyMode       = std::move(fn); }
     void setOnGrass(std::function<void(bool)> fn)               { _onGrass         = std::move(fn); }
 
-    std::string sectionTitle() const override { return "Game Display"; }
+    std::string sectionTitle() const override { return i18n::tr(i18n::key::SEC_GAME_DISPLAY); }
     std::vector<behavior::hud::HudElement> getHudElements() const override;
 
 private:
-    static constexpr const char* SKY_OPTIONS[] = { "Shader", "Empty" };
+    static constexpr const char* SKY_OPTIONS[] = { "Procedural", "Earth", "Minimal Sky", "City", "Empty" };
 
     mutable bool _incantation    = true;
     mutable bool _broadcastCircle = true;

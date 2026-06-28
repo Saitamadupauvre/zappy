@@ -88,6 +88,10 @@ std::vector<event::Event> RaylibWindow::pollEvents()
             events.push_back(event::KeyEvent{code, true});
     }
 
+    int cp;
+    while ((cp = GetCharPressed()) > 0)
+        events.push_back(event::CharInputEvent{cp});
+
     // Emit release events so InputManager resets key state between presses.
     for (int key = KEY_A; key <= KEY_Z; ++key) {
         if (IsKeyReleased(key)) {

@@ -4,11 +4,31 @@
 #include "behavior/hud/LayoutEngine.hpp"
 #include "event/Event.hpp"
 #include "util/Overloaded.hpp"
+#include "locator/Locator.hpp"
+#include "i18n/I18n.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 
 namespace behavior {
+
+static constexpr float FONT_SCALE = 1.4f;
+
+static graphic::FontHandle activeFont()
+{
+    switch (i18n::I18n::getLanguage()) {
+        case i18n::Language::Chinese:
+        case i18n::Language::Japanese:
+        case i18n::Language::Korean:
+        case i18n::Language::Arabic:
+        case i18n::Language::Hindi:
+        case i18n::Language::Russian:
+        case i18n::Language::Vietnamese:
+            return zappy::Locator::getCjkFont();
+        default:
+            return zappy::Locator::getDefaultFont();
+    }
+}
 
 AnchorWeights HudContainerBehavior::getAnchorWeights(Anchor anchor)
 {
@@ -33,8 +53,8 @@ graphic::Vector2f HudContainerBehavior::measureElement(graphic::IRenderer& rende
     return std::visit(overloaded{
         [&](const hud::TextData& arg) -> graphic::Vector2f {
             graphic::TextStyle style;
-            style.font  = graphic::FontHandle{0};
-            style.size  = arg.fontSize * s;
+            style.font  = activeFont();
+            style.size  = arg.fontSize * s * FONT_SCALE;
             style.color = arg.color;
             return renderer.measureText(arg.content, style);
         },
@@ -49,8 +69,8 @@ graphic::Vector2f HudContainerBehavior::measureElement(graphic::IRenderer& rende
         },
         [&](const hud::ChatBubbleData& arg) -> graphic::Vector2f {
             graphic::TextStyle ts;
-            ts.font  = graphic::FontHandle{0};
-            ts.size  = arg.fontSize * s;
+            ts.font  = activeFont();
+            ts.size  = arg.fontSize * s * FONT_SCALE;
             ts.color = {255, 255, 255, 255};
             auto textSz   = renderer.measureText(arg.text,   ts);
             auto senderSz = renderer.measureText(arg.sender, ts);
@@ -75,7 +95,24 @@ graphic::Vector2f HudContainerBehavior::measureElement(graphic::IRenderer& rende
             return {arg.width * s, arg.height * s};
         },
         [&](const hud::ImageButtonData& arg) -> graphic::Vector2f {
-            return {arg.width * s, arg.height * s};
+            float labelH = arg.label.empty() ? 0.f : (arg.labelSize + 3.f) * s;
+            return {arg.width * s, arg.height * s + labelH};
+        },
+        [&](const hud::InputTextData& arg) -> graphic::Vector2f {
+            float labelH = arg.label.empty() ? 0.f : (arg.fontSize + 4.f) * s;
+            return {arg.width * s, labelH + arg.height * s};
+        },
+        [&](const hud::HRowData& arg) -> graphic::Vector2f {
+            float totalW = 0.f, maxH = 0.f;
+            for (std::size_t i = 0; i < arg.children.size(); ++i) {
+                if (i > 0) totalW += arg.gap * s;
+                totalW += arg.children[i].width * s;
+                float childH = arg.children[i].height * s;
+                if (!arg.children[i].label.empty())
+                    childH += (arg.children[i].labelSize + 3.f) * s;
+                maxH = std::max(maxH, childH);
+            }
+            return {totalW, maxH};
         },
     }, el.data);
 }
@@ -139,11 +176,13 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
                                         const graphic::Vector2f& size)
 {
     float sc = _uiScale;
+    auto defFont = activeFont();
     std::visit(overloaded{
         [&](const hud::TextData& arg) {
             graphic::TextStyle style;
+            style.font    = defFont;
             style.color   = arg.color;
-            style.size    = arg.fontSize * sc;
+            style.size    = arg.fontSize * sc * FONT_SCALE;
             style.opacity = _animAlpha;
             renderer.drawText(arg.content, pos, style);
         },
@@ -162,25 +201,35 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
             renderer.drawRect({pos, size}, s);
         },
         [&](const hud::ButtonData& arg) {
-            bool hovered = (_lastMousePos.x >= pos.x && _lastMousePos.x <= pos.x + size.x &&
+            bool hovered = !arg.disabled &&
+                           (_lastMousePos.x >= pos.x && _lastMousePos.x <= pos.x + size.x &&
                             _lastMousePos.y >= pos.y && _lastMousePos.y <= pos.y + size.y);
 
+            graphic::Color4b bg = arg.disabled
+                ? graphic::Color4b{80, 80, 80, 180}
+                : (hovered ? arg.hoverBgColor : arg.bgColor);
+            graphic::Color4b tc = arg.disabled
+                ? graphic::Color4b{160, 160, 160, 200}
+                : arg.textColor;
+
             graphic::ShapeStyle s;
-            s.fill         = graphic::Fill{graphic::SolidFill{hovered ? arg.hoverBgColor : arg.bgColor}};
+            s.fill         = graphic::Fill{graphic::SolidFill{bg}};
             s.cornerRadius = 6.0f;
             s.opacity      = _animAlpha;
             renderer.drawRect({pos, size}, s);
 
             graphic::TextStyle ts;
-            ts.size    = arg.fontSize * sc;
-            ts.color   = arg.textColor;
+            ts.font    = defFont;
+            ts.size    = arg.fontSize * sc * FONT_SCALE;
+            ts.color   = tc;
             ts.opacity = _animAlpha;
             auto textSz = renderer.measureText(arg.label, ts);
             renderer.drawText(arg.label,
                 {pos.x + (size.x - textSz.x) * 0.5f, pos.y + (size.y - textSz.y) * 0.5f},
                 ts);
 
-            _buttonAreas.push_back({pos, size, arg.onClick});
+            if (!arg.disabled)
+                _buttonAreas.push_back({pos, size, arg.onClick});
         },
         [&](const hud::ChatBubbleData& arg) {
             graphic::ShapeStyle bs;
@@ -190,16 +239,18 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
             renderer.drawRect({pos, size}, bs);
 
             graphic::TextStyle senderStyle;
-            senderStyle.size    = (arg.fontSize - 1.0f) * sc;
+            senderStyle.font    = defFont;
+            senderStyle.size    = (arg.fontSize - 1.0f) * sc * FONT_SCALE;
             senderStyle.color   = {210, 210, 210, 255};
             senderStyle.opacity = _animAlpha;
             renderer.drawText(arg.sender, {pos.x + 6.0f * sc, pos.y + 4.0f * sc}, senderStyle);
 
             graphic::TextStyle msgStyle;
-            msgStyle.size    = arg.fontSize * sc;
+            msgStyle.font    = defFont;
+            msgStyle.size    = arg.fontSize * sc * FONT_SCALE;
             msgStyle.color   = {255, 255, 255, 255};
             msgStyle.opacity = _animAlpha;
-            renderer.drawText(arg.text, {pos.x + 6.0f * sc, pos.y + arg.fontSize * sc + 8.0f * sc}, msgStyle);
+            renderer.drawText(arg.text, {pos.x + 6.0f * sc, pos.y + arg.fontSize * sc * FONT_SCALE + 8.0f * sc}, msgStyle);
         },
         [&](const hud::ImageData& arg) {
             graphic::SpriteDrawParams sp;
@@ -259,7 +310,8 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
                 (arg.isOpen ? "  ^" : "  v");
 
             graphic::TextStyle hts;
-            hts.size    = arg.fontSize * sc;
+            hts.font    = defFont;
+            hts.size    = arg.fontSize * sc * FONT_SCALE;
             hts.color   = arg.textColor;
             hts.opacity = _animAlpha;
             auto hTextSz = renderer.measureText(headerLabel, hts);
@@ -284,7 +336,8 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
                     renderer.drawRect({{pos.x, oy}, {size.x, rh}}, os);
 
                     graphic::TextStyle ots;
-                    ots.size    = arg.fontSize * sc;
+                    ots.font    = defFont;
+                    ots.size    = arg.fontSize * sc * FONT_SCALE;
                     ots.color   = arg.textColor;
                     ots.opacity = _animAlpha;
                     auto oTextSz = renderer.measureText(arg.options[i], ots);
@@ -314,7 +367,7 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
 
             float imgSz = arg.imageSize * sc;
             float imgX  = pos.x + (size.x - imgSz) * 0.5f;
-            float imgY  = pos.y + (size.y - imgSz) * 0.5f - arg.fontSize * sc * 0.4f;
+            float imgY  = pos.y + (size.y - imgSz) * 0.5f - arg.fontSize * sc * FONT_SCALE * 0.4f;
             if (arg.texture.id != 0) {
                 graphic::SpriteDrawParams sp;
                 sp.texture = arg.texture;
@@ -327,7 +380,8 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
 
             if (!arg.label.empty()) {
                 graphic::TextStyle ts;
-                ts.size    = arg.fontSize * sc;
+                ts.font    = defFont;
+                ts.size    = arg.fontSize * sc * FONT_SCALE;
                 ts.color   = arg.textColor;
                 ts.opacity = _animAlpha;
                 auto textSz = renderer.measureText(arg.label, ts);
@@ -352,7 +406,8 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
 
             // label on left
             graphic::TextStyle lts;
-            lts.size    = arg.fontSize * sc;
+            lts.font    = defFont;
+            lts.size    = arg.fontSize * sc * FONT_SCALE;
             lts.color   = arg.textColor;
             lts.opacity = _animAlpha;
             auto labelSz = renderer.measureText(arg.label, lts);
@@ -375,7 +430,8 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
             renderer.drawRect({{badgeX, badgeY}, {badgeW, badgeH}}, bs);
 
             graphic::TextStyle bts;
-            bts.size    = (arg.fontSize - 1.f) * sc;
+            bts.font    = defFont;
+            bts.size    = (arg.fontSize - 1.f) * sc * FONT_SCALE;
             bts.color   = {255, 255, 255, 255};
             bts.opacity = _animAlpha;
             auto badgeSz = renderer.measureText(badge, bts);
@@ -392,15 +448,115 @@ void HudContainerBehavior::drawElement(graphic::IRenderer& renderer,
             bool hovered = (_lastMousePos.x >= pos.x && _lastMousePos.x <= pos.x + size.x &&
                             _lastMousePos.y >= pos.y && _lastMousePos.y <= pos.y + size.y);
 
+            float labelH = arg.label.empty() ? 0.f : (arg.labelSize + 3.f) * sc;
+            graphic::Vector2f imgSize = {size.x, size.y - labelH};
+
             graphic::SpriteDrawParams sp;
             sp.texture = arg.texture;
             sp.srcRect = {{0.f, 0.f}, {1.f, 1.f}};
-            sp.dstRect = {pos, size};
+            sp.dstRect = {pos, imgSize};
             sp.tint    = hovered ? arg.hoverTint : arg.tint;
             sp.opacity = _animAlpha * arg.opacity;
             renderer.drawSprite(sp);
 
+            if (!arg.label.empty()) {
+                graphic::TextStyle ls;
+                ls.font    = activeFont();
+                ls.size    = arg.labelSize * sc;
+                ls.color   = hovered ? arg.hoverTint : arg.labelColor;
+                ls.opacity = _animAlpha * arg.opacity;
+                float textY = pos.y + imgSize.y + 2.f * sc;
+                float textW = renderer.measureText(arg.label, ls).x;
+                float textX = pos.x + (imgSize.x - textW) * 0.5f;
+                renderer.drawText(arg.label, {textX, textY}, ls);
+            }
+
             _buttonAreas.push_back({pos, size, arg.onClick});
+        },
+        [&](const hud::InputTextData& arg) {
+            int idx = static_cast<int>(_inputAreas.size());
+            bool focused = (_focusedInput == idx);
+
+            float labelH = arg.label.empty() ? 0.f : (arg.fontSize + 4.f) * sc;
+            float boxY   = pos.y + labelH;
+            float boxH   = size.y - labelH;
+
+            if (!arg.label.empty()) {
+                graphic::TextStyle ls;
+                ls.size    = arg.fontSize * sc;
+                ls.color   = arg.labelColor;
+                ls.opacity = _animAlpha;
+                renderer.drawText(arg.label, {pos.x, pos.y}, ls);
+            }
+
+            graphic::ShapeStyle bg;
+            bg.fill         = graphic::Fill{graphic::SolidFill{arg.bgColor}};
+            bg.cornerRadius = 4.f;
+            bg.opacity      = _animAlpha;
+            renderer.drawRect({{pos.x, boxY}, {size.x, boxH}}, bg);
+
+            auto border = focused ? arg.focusBorder : arg.borderColor;
+            graphic::ShapeStyle bs;
+            bs.stroke       = graphic::Stroke{graphic::SolidFill{border}, focused ? 2.f : 1.f};
+            bs.cornerRadius = 4.f;
+            bs.opacity      = _animAlpha;
+            renderer.drawRect({{pos.x, boxY}, {size.x, boxH}}, bs);
+
+            graphic::TextStyle ts;
+            ts.size    = arg.fontSize * sc;
+            ts.opacity = _animAlpha;
+            float pad = 6.f * sc;
+
+            if (arg.value.empty() && !arg.placeholder.empty() && !focused) {
+                ts.color = arg.placeholderColor;
+                renderer.drawText(arg.placeholder, {pos.x + pad, boxY + (boxH - ts.size) * 0.5f}, ts);
+            } else {
+                ts.color = arg.textColor;
+                std::string display = arg.value;
+                if (focused && (std::fmod(_cursorBlink, 1.f) < 0.5f))
+                    display += '|';
+                renderer.drawText(display, {pos.x + pad, boxY + (boxH - ts.size) * 0.5f}, ts);
+            }
+
+            _inputAreas.push_back({{pos.x, boxY}, {size.x, boxH}, idx, arg.onChange, arg.onConfirm});
+        },
+        [&](const hud::HRowData& arg) {
+            float x    = pos.x;
+            float rowH = size.y;
+            for (const auto& child : arg.children) {
+                float cw     = child.width  * sc;
+                float imgH   = child.height * sc;
+                float labelH = child.label.empty() ? 0.f : (child.labelSize + 3.f) * sc;
+                float totalH = imgH + labelH;
+                float cy     = pos.y + (rowH - totalH) * 0.5f;
+
+                graphic::Vector2f cpos{x, cy};
+                graphic::Vector2f csz{cw, totalH};
+                bool hovered = (_lastMousePos.x >= cpos.x && _lastMousePos.x <= cpos.x + csz.x &&
+                                _lastMousePos.y >= cpos.y && _lastMousePos.y <= cpos.y + csz.y);
+
+                graphic::SpriteDrawParams sp;
+                sp.texture = child.texture;
+                sp.srcRect = {{0.f, 0.f}, {1.f, 1.f}};
+                sp.dstRect = {cpos, {cw, imgH}};
+                sp.tint    = hovered ? child.hoverTint : child.tint;
+                sp.opacity = _animAlpha * child.opacity;
+                renderer.drawSprite(sp);
+
+                if (!child.label.empty()) {
+                    graphic::TextStyle ls;
+                    ls.font    = activeFont();
+                    ls.size    = child.labelSize * sc;
+                    ls.color   = hovered ? child.hoverTint : child.labelColor;
+                    ls.opacity = _animAlpha * child.opacity;
+                    float textW = renderer.measureText(child.label, ls).x;
+                    float textX = cpos.x + (cw - textW) * 0.5f;
+                    renderer.drawText(child.label, {textX, cy + imgH + 2.f * sc}, ls);
+                }
+
+                _buttonAreas.push_back({cpos, csz, child.onClick});
+                x += cw + arg.gap * sc;
+            }
         },
     }, el.data);
 }
@@ -527,6 +683,22 @@ void HudContainerBehavior::onEvent(graphic::Entity& owner, const event::Event& e
             }
             _draggingSlider = -1;
 
+            // Check input fields first
+            for (auto& inp : _inputAreas) {
+                bool hit = (e.screenPos.x >= inp.pos.x && e.screenPos.x <= inp.pos.x + inp.size.x &&
+                            e.screenPos.y >= inp.pos.y && e.screenPos.y <= inp.pos.y + inp.size.y);
+                if (hit) {
+                    _focusedInput = inp.elementIndex;
+                    _cursorBlink  = 0.f;
+                    return;
+                }
+            }
+            // Click outside inputs → unfocus
+            if (_focusedInput >= 0) {
+                _focusedInput = -1;
+                return;
+            }
+
             for (auto& btn : _buttonAreas) {
                 bool hit = (e.screenPos.x >= btn.pos.x && e.screenPos.x <= btn.pos.x + btn.size.x &&
                             e.screenPos.y >= btn.pos.y && e.screenPos.y <= btn.pos.y + btn.size.y);
@@ -534,6 +706,59 @@ void HudContainerBehavior::onEvent(graphic::Entity& owner, const event::Event& e
                     btn.onClick();
                     break;
                 }
+            }
+        },
+        [&](const event::LanguageChangedEvent&) {
+            _lastProviderVersion = 0;
+        },
+        [&](const event::CharInputEvent& e) {
+            if (_focusedInput < 0) return;
+            for (auto& inp : _inputAreas) {
+                if (inp.elementIndex != _focusedInput) continue;
+                if (e.codepoint >= 32 && e.codepoint < 127) {
+                    if (inp.onChange) {
+                        // Find the nth InputTextData in _cachedElements
+                        int nth = 0;
+                        for (auto& el : _cachedElements) {
+                            if (auto* itd = std::get_if<hud::InputTextData>(&el.data)) {
+                                if (nth == _focusedInput) {
+                                    inp.onChange(itd->value + static_cast<char>(e.codepoint));
+                                    break;
+                                }
+                                ++nth;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        },
+        [&](const event::KeyEvent& e) {
+            if (_focusedInput < 0 || !e.pressed) return;
+            for (auto& inp : _inputAreas) {
+                if (inp.elementIndex != _focusedInput) continue;
+                // Find the nth InputTextData in _cachedElements
+                hud::InputTextData* itd = nullptr;
+                int nth = 0;
+                for (auto& el : _cachedElements) {
+                    if (auto* p = std::get_if<hud::InputTextData>(&el.data)) {
+                        if (nth == _focusedInput) { itd = p; break; }
+                        ++nth;
+                    }
+                }
+                if (!itd) break;
+
+                if (e.key == graphic::KeyCode::KEY_BACKSPACE) {
+                    if (!itd->value.empty() && inp.onChange) {
+                        inp.onChange(itd->value.substr(0, itd->value.size() - 1));
+                    }
+                } else if (e.key == graphic::KeyCode::KEY_ENTER) {
+                    if (inp.onConfirm) inp.onConfirm(itd->value);
+                    _focusedInput = -1;
+                } else if (e.key == graphic::KeyCode::KEY_ESCAPE) {
+                    _focusedInput = -1;
+                }
+                break;
             }
         }
     );
@@ -553,6 +778,7 @@ void HudContainerBehavior::draw(graphic::IRenderer& renderer,
     if (!_provider || _animState == AnimState::Hidden) {
         _buttonAreas.clear();
         _sliderAreas.clear();
+        _inputAreas.clear();
         return;
     }
 
@@ -592,7 +818,8 @@ void HudContainerBehavior::draw(graphic::IRenderer& renderer,
                                }
                                return graphic::Vector2f{maxW + scaledPadding * 4.f, totalH + scaledPadding};
                            }()
-                           : graphic::Vector2f{_fixedSize.x * _uiScale, _fixedSize.y * _uiScale};
+                           : (_fullscreen ? renderer.getViewportSize()
+                                          : graphic::Vector2f{_fixedSize.x * _uiScale, _fixedSize.y * _uiScale});
     rect->setSize(sz);
 
     _lastSize = sz;
@@ -633,7 +860,8 @@ void HudContainerBehavior::draw(graphic::IRenderer& renderer,
         renderer.drawRect({origin, {sz.x, barH}}, barStyle);
 
         graphic::TextStyle ts;
-        ts.size    = _titleFontSize * _uiScale;
+        ts.font    = activeFont();
+        ts.size    = _titleFontSize * _uiScale * FONT_SCALE;
         ts.color   = {200, 210, 255, 255};
         ts.opacity = _animAlpha;
         auto textSz = renderer.measureText(_title, ts);
@@ -648,6 +876,7 @@ void HudContainerBehavior::draw(graphic::IRenderer& renderer,
 
     _buttonAreas.clear();
     _sliderAreas.clear();
+    _inputAreas.clear();
 
     if (_isScrollable)
         renderer.beginScissor(

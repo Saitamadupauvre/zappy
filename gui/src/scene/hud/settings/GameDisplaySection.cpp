@@ -11,7 +11,7 @@ std::vector<behavior::hud::HudElement> GameDisplaySection::getHudElements() cons
     };
 
     elems.push_back({behavior::hud::ToggleData{
-        .label    = "Incantation Effect",
+        .label    = i18n::tr(i18n::key::INCANTATION_FX),
         .value    = _incantation,
         .width    = 260.f,
         .height   = 32.f,
@@ -25,7 +25,7 @@ std::vector<behavior::hud::HudElement> GameDisplaySection::getHudElements() cons
     sep();
 
     elems.push_back({behavior::hud::ToggleData{
-        .label    = "Broadcast Radius Circle",
+        .label    = i18n::tr(i18n::key::BROADCAST_CIRCLE),
         .value    = _broadcastCircle,
         .width    = 260.f,
         .height   = 32.f,
@@ -39,7 +39,7 @@ std::vector<behavior::hud::HudElement> GameDisplaySection::getHudElements() cons
     sep();
 
     elems.push_back({behavior::hud::ToggleData{
-        .label    = "Egg Hatch Animation",
+        .label    = i18n::tr(i18n::key::EGG_HATCH_ANIM),
         .value    = _eggHatchAnim,
         .width    = 260.f,
         .height   = 32.f,
@@ -53,7 +53,7 @@ std::vector<behavior::hud::HudElement> GameDisplaySection::getHudElements() cons
     sep();
 
     elems.push_back({behavior::hud::ToggleData{
-        .label    = "Team Color on Name Tags",
+        .label    = i18n::tr(i18n::key::TEAM_COLOR_TAGS),
         .value    = _teamColorTags,
         .width    = 260.f,
         .height   = 32.f,
@@ -67,7 +67,7 @@ std::vector<behavior::hud::HudElement> GameDisplaySection::getHudElements() cons
     sep();
 
     elems.push_back({behavior::hud::ToggleData{
-        .label    = "Grass",
+        .label    = i18n::tr(i18n::key::GRASS),
         .value    = _grass,
         .width    = 260.f,
         .height   = 32.f,
@@ -86,7 +86,7 @@ std::vector<behavior::hud::HudElement> GameDisplaySection::getHudElements() cons
             labels.push_back(opt);
 
         elems.push_back({behavior::hud::SelectData{
-            .label        = "Sky",
+            .label        = i18n::tr(i18n::key::SKY),
             .options      = std::move(labels),
             .currentIndex = _skyIdx,
             .isOpen       = _skyOpen,

@@ -3,6 +3,7 @@
 #include "hud/IHudProvider.hpp"
 #include "hud/HudElements.hpp"
 #include "scene/hud/settings/ISettingsSection.hpp"
+#include "i18n/I18n.hpp"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -18,8 +19,9 @@ public:
         _sections.push_back(std::move(section));
     }
 
-    void setOnNavigate(std::function<void()> cb) { _onNavigate = std::move(cb); }
-    void setOnQuit(std::function<void()> cb)     { _onQuit = std::move(cb); }
+    void setOnNavigate(std::function<void()> cb)    { _onNavigate    = std::move(cb); }
+    void setOnQuit(std::function<void()> cb)        { _onQuit        = std::move(cb); }
+    void setOnBackToMenu(std::function<void()> cb)  { _onBackToMenu  = std::move(cb); }
 
     const std::vector<HudElement>& getHudElements() const override
     {
@@ -49,7 +51,12 @@ private:
             }});
         }
         elems.push_back({ButtonData{
-            "Quit Game", 13.f, 260.f, 38.f,
+            i18n::tr(i18n::key::BACK_TO_MENU), 13.f, 260.f, 38.f,
+            {255, 255, 255, 255}, {30, 70, 130, 210}, {50, 110, 200, 235},
+            [this]() { if (_onBackToMenu) _onBackToMenu(); }
+        }});
+        elems.push_back({ButtonData{
+            i18n::tr(i18n::key::QUIT_GAME), 13.f, 260.f, 38.f,
             {255, 255, 255, 255}, {110, 30, 30, 210}, {200, 60, 60, 235},
             [this]() { if (_onQuit) _onQuit(); }
         }});
@@ -60,7 +67,7 @@ private:
     {
         std::vector<HudElement> elems;
         elems.push_back({ButtonData{
-            "< Back", 11.f, 260.f, 28.f,
+            i18n::tr(i18n::key::BACK), 11.f, 260.f, 28.f,
             {255, 255, 255, 255}, {70, 45, 45, 200}, {150, 70, 70, 230},
             [this]() {
                 _currentSection = std::nullopt;
@@ -77,6 +84,7 @@ private:
     mutable std::vector<HudElement> _cache;
     std::function<void()> _onNavigate;
     std::function<void()> _onQuit;
+    std::function<void()> _onBackToMenu;
 };
 
 } // namespace behavior::hud

@@ -1,0 +1,15 @@
+#version 330
+
+in vec3 vertexPosition;
+
+uniform mat4 matView;
+uniform mat4 matProjection;
+
+out vec3 fragDir;
+
+void main()
+{
+    fragDir = vertexPosition;
+    vec4 pos = matProjection * mat4(mat3(matView)) * vec4(vertexPosition, 1.0);
+    gl_Position = pos.xyww;
+}

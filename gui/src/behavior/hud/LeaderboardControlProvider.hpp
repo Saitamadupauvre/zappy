@@ -2,6 +2,7 @@
 
 #include "hud/IHudProvider.hpp"
 #include "hud/HudElements.hpp"
+#include "i18n/I18n.hpp"
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -23,7 +24,8 @@ public:
 
     const std::vector<behavior::hud::HudElement>& getHudElements() const override
     {
-        if (!_dirty) return _cache;
+        if (!_dirty && i18n::I18n::getVersion() == _i18nVersion) return _cache;
+        _i18nVersion = i18n::I18n::getVersion();
         _dirty = false;
         _cache.clear();
 
@@ -41,14 +43,14 @@ public:
         bool canNext = _offset + _maxVisible < _total;
 
         _cache.push_back({behavior::hud::ButtonData{
-            "^ Prev", 12.0f, 90.0f, 24.0f,
+            i18n::tr(i18n::key::LB_PREV), 12.0f, 90.0f, 24.0f,
             canPrev ? white : dimWhite,
             canPrev ? activeBtn : disabledBg,
             canPrev ? hoverBtn  : disabledBg,
             canPrev ? _onPrev : std::function<void()>{}}});
         _cache.push_back({behavior::hud::TextData{label, 13.0f, {200, 200, 200, 200}}});
         _cache.push_back({behavior::hud::ButtonData{
-            "Next v", 12.0f, 90.0f, 24.0f,
+            i18n::tr(i18n::key::LB_NEXT), 12.0f, 90.0f, 24.0f,
             canNext ? white : dimWhite,
             canNext ? activeBtn : disabledBg,
             canNext ? hoverBtn  : disabledBg,
@@ -57,7 +59,7 @@ public:
         graphic::Color4b infoBtn   = {40, 120, 80, 220};
         graphic::Color4b infoHover = {60, 180, 110, 240};
         _cache.push_back({behavior::hud::ButtonData{
-            "World Info", 12.0f, 90.0f, 24.0f,
+            i18n::tr(i18n::key::LB_WORLD_INFO), 12.0f, 90.0f, 24.0f,
             white, infoBtn, infoHover, _onWorldInfo}});
         return _cache;
     }
@@ -73,8 +75,9 @@ private:
     std::function<void()> _onWorldInfo;
 
     mutable std::vector<behavior::hud::HudElement> _cache;
-    mutable bool     _dirty   = true;
-    mutable uint64_t _version = 1;
+    mutable bool     _dirty       = true;
+    mutable uint64_t _version     = 1;
+    mutable uint64_t _i18nVersion = 0;
 
     void markDirty() { _dirty = true; ++_version; }
 };

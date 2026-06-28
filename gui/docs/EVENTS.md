@@ -7,8 +7,9 @@
 ```
 Event = variant<WindowEvent, RenderEvent, WorldEvent, LogicEvent>
 
-WindowEvent = variant<ResizeEvent, CloseEvent, ...>
-RenderEvent = variant<RenderBeginEvent, RenderEndEvent>
+WindowEvent = variant<ResizeEvent, CloseEvent, MouseButtonEvent,
+                      MouseMoveEvent, MouseWheelEvent, KeyEvent>
+RenderEvent = variant<Draw3DEvent, Draw2DEvent>
 WorldEvent  = variant<PlayerAddedEvent, TileChangedEvent, ...>
 LogicEvent  = variant<EntityMoveToEvent, EntitySelectedEvent, ...>
 ```
@@ -42,10 +43,10 @@ For direct `std::visit` on a non-nested variant (e.g. `HudElementData`), use `ov
 ## Dispatching events
 
 ```cpp
-// From WorldScene or any subsystem that holds a scene/manager reference:
+// Scene-internal (LogicEvent):
 _entities.handleEvent(event::Event{event::LogicEvent{event::EntitySelectedEvent{id}}});
 
-// Shorthand for WorldEvent (from CommandExecutor → World::emit → scene):
+// World mutation path (WorldEvent emitted by CommandExecutor):
 _world.emit(event::WorldEvent{event::PlayerAddedEvent{player}});
 ```
 
@@ -76,9 +77,9 @@ Emitted by `World::emit()` after `CommandExecutor` processes a protocol line. `W
 | `TimeUnitChangedEvent` | `timeUnit` | `sgt` |
 | `GameEndedEvent` | `winnerTeam` | `seg` |
 | `ServerMessageEvent` | `message` | `smg` |
-| `MapLayoutCycleEvent` | — | Key G (input action) |
-| `TileShadingToggleEvent` | — | Key T (input action) |
 | `ServerUptimeEvent` | `uptimeSeconds` | `suc` |
+| `MapLayoutCycleEvent` | — | Key G (InputAction) |
+| `TileShadingToggleEvent` | — | Key T (InputAction) |
 
 ## LogicEvent — scene-internal
 
@@ -92,8 +93,21 @@ Emitted by scene logic; consumed by entity behaviors. Never originates from the 
 | `SelectEvent` | `entityId, isSelected` | `EntityManager::applySelection` |
 | `ClickEvent` | `entityId` | `PickSystem` / `HudPicker` |
 | `EntitySelectedEvent` | `entityId` | `SelectableBehavior` |
-| `CameraFollowToggleEvent` | — | Input action F |
+| `CameraFollowToggleEvent` | — | InputAction F |
 | `TeamSelectEvent` | `ids, isSelected` | `TeamDetailPanel` Follow button |
+
+## WindowEvent — OS / input
+
+Emitted by `GraphicsContext::pollAndDispatch()` from raw Raylib events.
+
+| Event | Fields |
+|---|---|
+| `CloseEvent` | — |
+| `ResizeEvent` | `width, height` |
+| `MouseButtonEvent` | `button, pressed, x, y` |
+| `MouseMoveEvent` | `x, y, dx, dy` |
+| `MouseWheelEvent` | `delta` |
+| `KeyEvent` | `key, pressed` |
 
 ## Adding a new event type
 

@@ -3,6 +3,7 @@
 #include "CreditsSection.hpp"
 #include "GameDisplaySection.hpp"
 #include "KeybindingsSection.hpp"
+#include "LanguageSection.hpp"
 #include "PikminClickerSection.hpp"
 #include "VideoSection.hpp"
 #include "scene/builder/EntityBuilder.hpp"
@@ -20,12 +21,52 @@ void SettingsPanel::setup(HudManager& hud, InputManager& input,
     _videoSection = video.get();
     _provider->addSection(std::move(video));
 
-    _provider->addSection(std::make_shared<AudioSection>());
+    {
+        auto audio = std::make_shared<AudioSection>();
+        _audioSection = audio.get();
+        _provider->addSection(std::move(audio));
+    }
 
     {
         auto gameDisplay = std::make_shared<GameDisplaySection>();
         _gameDisplaySection = gameDisplay.get();
         _provider->addSection(std::move(gameDisplay));
+    }
+
+    {
+        auto language = std::make_shared<LanguageSection>();
+        _languageSection = language.get();
+        static constexpr const char* FLAG_PATHS[18] = {
+            "assets/images/flags/english_flag.png",
+            "assets/images/flags/france_flag.png",
+            "assets/images/flags/spain_flag.png",
+            "assets/images/flags/chinese_flag.png",
+            "assets/images/flags/japanese_flag.png",
+            "assets/images/flags/Pirate_Flag.png",
+            "assets/images/flags/korean_flag.png",
+            "assets/images/flags/arabic_flag.png",
+            "assets/images/flags/hindi_flag.png",
+            "assets/images/flags/portuguese_flag.png",
+            "assets/images/flags/german_flag.png",
+            "assets/images/flags/russian_flag.png",
+            "assets/images/flags/italian_flag.png",
+            "assets/images/flags/turkish_flag.png",
+            "assets/images/flags/polish_flag.png",
+            "assets/images/flags/dutch_flag.png",
+            "assets/images/flags/vietnamese_flag.png",
+            "assets/images/flags/zimbabwe_flag.png",
+        };
+        graphic::TextureHandle flags[18]{};
+        for (int i = 0; i < 18; ++i) {
+            try {
+                auto texData = loader.loadFromFile(FLAG_PATHS[i]);
+                flags[i] = renderer.uploadTexture(texData);
+            } catch (...) {
+                _log.warn("Failed to load flag texture ", i);
+            }
+        }
+        language->setFlagTextures(flags);
+        _provider->addSection(std::move(language));
     }
 
     _provider->addSection(std::make_shared<CreditsSection>());
@@ -116,9 +157,29 @@ void SettingsPanel::setOnGrass(std::function<void(bool)> fn)
     if (_gameDisplaySection) _gameDisplaySection->setOnGrass(std::move(fn));
 }
 
+void SettingsPanel::setOnLanguageChange(std::function<void(i18n::Language)> fn)
+{
+    if (_languageSection) _languageSection->setOnLanguageChange(std::move(fn));
+}
+
+void SettingsPanel::setOnSoundVolume(std::function<void(float)> fn)
+{
+    if (_audioSection) _audioSection->setOnSoundVolume(std::move(fn));
+}
+
+void SettingsPanel::setOnMusicVolume(std::function<void(float)> fn)
+{
+    if (_audioSection) _audioSection->setOnMusicVolume(std::move(fn));
+}
+
 void SettingsPanel::setOnExitGame(std::function<void()> fn)
 {
     if (_provider) _provider->setOnQuit(std::move(fn));
+}
+
+void SettingsPanel::setOnBackToMenu(std::function<void()> fn)
+{
+    if (_provider) _provider->setOnBackToMenu(std::move(fn));
 }
 
 void SettingsPanel::toggle()

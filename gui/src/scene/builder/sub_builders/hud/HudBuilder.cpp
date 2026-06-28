@@ -91,6 +91,16 @@ EntityBuilder& HudBuilder::autoSize()
     return _owner;
 }
 
+EntityBuilder& HudBuilder::fullscreen()
+{
+    auto hud = _entity->getBehavior<behavior::HudContainerBehavior>();
+    if (hud) {
+        hud->setSizeMode(graphic::SizeMode::Fixed);
+        hud->setFullscreen(true);
+    }
+    return _owner;
+}
+
 EntityBuilder& HudBuilder::anchorOffset(const graphic::Vector2f& offset)
 {
     auto hud = _entity->getBehavior<behavior::HudContainerBehavior>();

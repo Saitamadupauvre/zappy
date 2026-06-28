@@ -8,7 +8,7 @@ namespace zappy {
 
 CliParser::CliParser()
 {
-    _flags.push_back(std::make_unique<ValueFlag>("-p", true, this, &CliParser::parsePort));     
+    _flags.push_back(std::make_unique<ValueFlag>("-p", false, this, &CliParser::parsePort));
     _flags.push_back(std::make_unique<ValueFlag>("-h", false, this, &CliParser::parseMachine));
     _flags.push_back(std::make_unique<ValueFlag>("-v", false, this, &CliParser::parseVerbose));
     _flags.push_back(std::make_unique<ValueFlag>("--verbose", false, this, &CliParser::parseVerbose));
@@ -123,11 +123,6 @@ bool CliParser::parseArguments(int argc, const char **argv)
             throw CliParserException("Missing mandatory argument: " + flag->getShortName());
         }
     });
-
-    if (_config.port.empty()) {
-        _log.error("Validation failed: Mandatory port is missing.");
-        throw CliParserException("Missing mandatory argument: -p or --port");
-    }
 
     _log.debug("All arguments successfully validated.");
     return true;

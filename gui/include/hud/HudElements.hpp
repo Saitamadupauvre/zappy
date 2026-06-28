@@ -37,6 +37,7 @@ namespace behavior::hud {
         graphic::Color4b bgColor      = {40,  110, 210, 220};
         graphic::Color4b hoverBgColor = {70,  145, 255, 230};
         std::function<void()> onClick;
+        bool disabled = false;
     };
 
     struct ChatBubbleData {
@@ -117,9 +118,35 @@ namespace behavior::hud {
         graphic::Color4b hoverTint = {200, 200, 255, 255};
         float opacity = 1.0f;
         std::function<void()> onClick;
+        std::string label;
+        float labelSize = 9.f;
+        graphic::Color4b labelColor = {200, 200, 220, 255};
     };
 
-    using HudElementData = std::variant<TextData, BarData, RectData, ButtonData, ChatBubbleData, ImageData, SliderData, SlotData, SelectData, ToggleData, ImageButtonData>;
+    struct HRowData {
+        std::vector<ImageButtonData> children;
+        float gap = 8.f;
+    };
+
+    struct InputTextData {
+        std::string label;
+        std::string value;
+        std::string placeholder;
+        float        width    = 200.f;
+        float        height   = 28.f;
+        float        fontSize = 13.f;
+        bool         focused  = false;
+        graphic::Color4b bgColor      = {20, 20, 40, 220};
+        graphic::Color4b borderColor  = {80, 80, 160, 255};
+        graphic::Color4b focusBorder  = {100, 160, 255, 255};
+        graphic::Color4b textColor    = {255, 255, 255, 255};
+        graphic::Color4b labelColor   = {180, 190, 220, 255};
+        graphic::Color4b placeholderColor = {100, 100, 130, 200};
+        std::function<void(const std::string&)> onChange;
+        std::function<void(const std::string&)> onConfirm;
+    };
+
+    using HudElementData = std::variant<TextData, BarData, RectData, ButtonData, ChatBubbleData, ImageData, SliderData, SlotData, SelectData, ToggleData, ImageButtonData, InputTextData, HRowData>;
 
     struct HudElement {
         HudElementData data;

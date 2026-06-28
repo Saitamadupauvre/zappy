@@ -53,6 +53,8 @@ public:
         return _cache;
     }
 
+    double getElapsedSeconds() const { return _baseSecs + _localElapsed; }
+
     uint64_t getVersion() const override { return _version; }
 
 private:

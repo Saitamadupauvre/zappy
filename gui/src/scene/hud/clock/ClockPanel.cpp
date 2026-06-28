@@ -36,4 +36,9 @@ void ClockPanel::tick(float dt)
     if (_provider) _provider->tick(dt);
 }
 
+double ClockPanel::getElapsedSeconds() const
+{
+    return _provider ? _provider->getElapsedSeconds() : 0.0;
+}
+
 } // namespace zappy

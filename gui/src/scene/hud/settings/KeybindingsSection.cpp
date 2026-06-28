@@ -1,27 +1,28 @@
 #include "KeybindingsSection.hpp"
+#include "i18n/I18n.hpp"
 
 namespace zappy {
 
 static constexpr std::pair<InputAction, const char*> REBINDABLE_ACTIONS[] = {
-    {InputAction::MOVE_FORWARD,        "Move Forward"},
-    {InputAction::MOVE_BACKWARD,       "Move Backward"},
-    {InputAction::MOVE_LEFT,           "Move Left"},
-    {InputAction::MOVE_RIGHT,          "Move Right"},
-    {InputAction::TOGGLE_POV,          "Toggle POV"},
-    {InputAction::CYCLE_LAYOUT,        "Cycle Layout"},
-    {InputAction::TOGGLE_TILES,        "Toggle Tiles"},
-    {InputAction::FOLLOW_TOGGLE,       "Follow Player"},
-    {InputAction::TOGGLE_LEADERBOARD,  "Leaderboard"},
-    {InputAction::TOGGLE_SETTINGS,     "Settings"},
+    {InputAction::MOVE_FORWARD,        i18n::key::ACTION_MOVE_FORWARD},
+    {InputAction::MOVE_BACKWARD,       i18n::key::ACTION_MOVE_BACKWARD},
+    {InputAction::MOVE_LEFT,           i18n::key::ACTION_MOVE_LEFT},
+    {InputAction::MOVE_RIGHT,          i18n::key::ACTION_MOVE_RIGHT},
+    {InputAction::TOGGLE_POV,          i18n::key::ACTION_TOGGLE_POV},
+    {InputAction::CYCLE_LAYOUT,        i18n::key::ACTION_CYCLE_LAYOUT},
+    {InputAction::TOGGLE_TILES,        i18n::key::ACTION_TOGGLE_TILES},
+    {InputAction::FOLLOW_TOGGLE,       i18n::key::ACTION_FOLLOW},
+    {InputAction::TOGGLE_LEADERBOARD,  i18n::key::ACTION_LEADERBOARD},
+    {InputAction::TOGGLE_SETTINGS,     i18n::key::ACTION_SETTINGS},
 };
 
 KeybindingsSection::KeybindingsSection(InputManager& input) : _input(input) {}
 
 std::string KeybindingsSection::actionDisplayName(InputAction action)
 {
-    for (auto& [a, name] : REBINDABLE_ACTIONS)
-        if (a == action) return name;
-    return "Unknown";
+    for (auto& [a, key] : REBINDABLE_ACTIONS)
+        if (a == action) return i18n::tr(key);
+    return i18n::tr(i18n::key::UNKNOWN);
 }
 
 std::string KeybindingsSection::keyDisplayName(const InputKey& key)
@@ -99,8 +100,8 @@ std::vector<behavior::hud::HudElement> KeybindingsSection::getHudElements() cons
         std::string keyLabel;
         if (isPending) {
             keyLabel = (_pendingMode == PendingMode::Rebind)
-                ? "- press any key..."
-                : "+ press any key...";
+                ? i18n::tr(i18n::key::PRESS_ANY_KEY_REBIND)
+                : i18n::tr(i18n::key::PRESS_ANY_KEY_ADD);
         } else {
             auto keys = _input.getBoundKeys(action);
             for (std::size_t i = 0; i < keys.size(); ++i) {
@@ -120,14 +121,14 @@ std::vector<behavior::hud::HudElement> KeybindingsSection::getHudElements() cons
         elems.push_back({behavior::hud::TextData{actionDisplayName(action), 12.f, nameColor}});
         elems.push_back({behavior::hud::TextData{keyLabel, 10.5f, keyColor}});
         elems.push_back({behavior::hud::ButtonData{
-            isPending ? "..." : "Rebind", 11.f, 120.f, 22.f,
+            isPending ? "..." : i18n::tr(i18n::key::REBIND), 11.f, 120.f, 22.f,
             {255, 255, 255, 255}, {50, 75, 140, 210}, {80, 120, 210, 235},
             [this, action, isPending]() {
                 if (!isPending) startCapture(action, PendingMode::Rebind);
             }
         }});
         elems.push_back({behavior::hud::ButtonData{
-            isPending ? "..." : "+ Add key", 11.f, 120.f, 22.f,
+            isPending ? "..." : i18n::tr(i18n::key::ADD_KEY), 11.f, 120.f, 22.f,
             {255, 255, 255, 255}, {35, 90, 60, 210}, {55, 140, 90, 235},
             [this, action, isPending]() {
                 if (!isPending) startCapture(action, PendingMode::Add);

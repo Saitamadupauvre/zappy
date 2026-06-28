@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scene.hpp"
+#include "audio/IAudioManager.hpp"
 #include "graphic/IRenderer.hpp"
 #include "graphic/IMeshFactory.hpp"
 #include "graphic/ITextureLoader.hpp"
@@ -30,7 +31,8 @@ class WorldScene : public Scene
 {
 public:
     WorldScene(graphic::IRenderer& renderer, graphic::IMeshFactory& meshFactory,
-               graphic::ITextureLoader& textureLoader);
+               graphic::ITextureLoader& textureLoader,
+               audio::IAudioManager& audioMgr);
     ~WorldScene() override = default;
 
     void update(const World& world, float dt) override;
@@ -43,6 +45,7 @@ public:
     void setOnFullscreen(std::function<void(bool)> fn);
     void setOnResolution(std::function<void(int,int)> fn);
     void setOnExitGame(std::function<void()> fn);
+    void setOnBackToMenu(std::function<void()> fn);
 
 private:
     void onWorldResized(const event::WorldResizedEvent& e);
@@ -66,6 +69,7 @@ private:
     void spawnExplosion(const event::IncantationEndEvent& e);
     void refreshTeamDetailIfOpen(uint32_t playerId);
     void onTeamSelected(const std::string& team);
+    void refreshTeamStats(const std::string& team);
     void clearTeamSelection();
 
     static constexpr float SPACING           = 2.0f;
@@ -80,6 +84,8 @@ private:
     int  _worldW        = 0;
     int  _worldH        = 0;
     bool _pendingResync = false;
+    int  _tilesReceived = 0;
+    int  _tilesTotal    = 0;
     std::vector<event::EggAddedEvent>          _pendingEggs;
     std::unordered_map<uint32_t, EggState>     _spawnedEggs;
     bool  _showTiles            = true;
@@ -122,6 +128,7 @@ private:
 
     graphic::ITextureLoader* _textureLoader = nullptr;
     const World*             _worldPtr      = nullptr;
+    audio::IAudioManager*    _audioMgr      = nullptr;
     ContextLogger _log{"WorldScene"};
 };
 

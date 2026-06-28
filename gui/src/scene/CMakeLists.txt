@@ -1,6 +1,12 @@
 add_library(zappy_scene STATIC
     Scene.cpp
     WorldScene.cpp
+    MenuScene.cpp
+    hud/menu/MainMenuPanel.cpp
+    hud/menu/ConnectPanel.cpp
+    hud/menu/LaunchPanel.cpp
+    hud/menu/LoadingOverlay.cpp
+    hud/endscreen/EndScreenPanel.cpp
     world/PlayerTileSystem.cpp
     world/WorldBuilder.cpp
     SceneHudManager.cpp

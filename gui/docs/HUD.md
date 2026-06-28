@@ -112,14 +112,14 @@ RectData{
 ### ButtonData
 ```cpp
 ButtonData{
-    .label       = "Click me",
-    .fontSize    = 14.f,
-    .width       = 130.f,
-    .height      = 28.f,
-    .textColor   = {255, 255, 255, 255},
-    .bgColor     = {40,  110, 210, 220},
-    .hoverBgColor= {70,  145, 255, 230},
-    .onClick     = []{ /* handle click */ },
+    .label        = "Click me",
+    .fontSize     = 14.f,
+    .width        = 130.f,
+    .height       = 28.f,
+    .textColor    = {255, 255, 255, 255},
+    .bgColor      = {40,  110, 210, 220},
+    .hoverBgColor = {70,  145, 255, 230},
+    .onClick      = []{ /* handle click */ },
 }
 ```
 
@@ -179,6 +179,20 @@ SlotData{
 
 Used for inventory-style grids.
 
+### InputTextData
+```cpp
+InputTextData{
+    .placeholder = "localhost",
+    .value       = &_hostString,   // pointer to string modified in place
+    .fontSize    = 14.f,
+    .width       = 200.f,
+    .height      = 28.f,
+    .onChange    = [this](const std::string& s){ _host = s; },
+}
+```
+
+Used in `ConnectPanel` for host/port fields. The behavior handles keyboard capture internally.
+
 ## Layout types
 
 Set with `.hud().layout(type, padding)`:
@@ -188,6 +202,9 @@ Set with `.hud().layout(type, padding)`:
 | `Vertical` (default) | Elements stacked top-to-bottom, center-aligned |
 | `Horizontal` | Elements placed left-to-right |
 | `MediaObject` | Element[0] in left column; elements[1..N] stacked in right column (leaderboard rows) |
+| `VerticalMedia` | Vertical with an image/media pinned to top |
+| `Grid` | Elements arranged in a configurable-column grid |
+| `MediaObjectHButtons` | Like MediaObject but right column uses horizontal button layout |
 
 ## Anchor positions
 
@@ -245,23 +262,71 @@ Start hidden in the builder with `.hud().hidden()`.
 
 ## Existing panels
 
+### WorldScene panels
+
 | Panel | ID | File | Purpose |
 |---|---|---|---|
-| `PlayerInfoPanel` | 9998 | `hud/player/` | Selected player name, level, team |
+| `PlayerInfoPanel` | 9998 | `hud/player/` | Selected player name, level, team, position |
 | `InventoryPanel` | 9890 | `hud/inventory/` | Selected player resources as icon slots |
-| `ChatPanel` | 9997 | `hud/chat/` | Team broadcast chat |
+| `ChatPanel` | 9997 | `hud/chat/` | Team broadcast chat bubbles |
 | `LeaderboardPanel` | 9900–9949 | `hud/leaderboard/` | Team ranking (one entity per team) |
 | `TeamDetailPanel` | 9896 | `hud/leaderboard/` | Per-team player list with Follow buttons |
-| `PopupPanel` | 9893–9895 | `hud/popup/` | Toast notifications (3 slots) |
-| `SpeedPanel` | 9892 | `hud/speed/` | Speed slider |
-| `SettingsPanel` | 9891 | `hud/settings/` | Keybindings remapper |
+| `PopupPanel` | 9893–9895 | `hud/popup/` | Toast notifications (3 rotating slots) |
+| `SpeedPanel` | 9892 | `hud/speed/` | Server time unit slider |
+| `SettingsPanel` | 9891 | `hud/settings/` | Keybindings remapper + video/audio options |
 | `ResourceInfoPanel` | 9999 | `hud/resource/` | Tile resource counts on click |
+| `ClockPanel` | 9889 | `hud/clock/` | Server uptime display (MM:SS:CS) |
+| `WorldInfoPanel` | 9888 | `hud/world/` | World stats (map size, player count, teams) |
+| `TeamStatsPanel` | — | `hud/leaderboard/` | Per-team aggregate stats overlay |
+
+### MenuScene panels
+
+| Panel | ID | File | Purpose |
+|---|---|---|---|
+| `MainMenuPanel` | 9880 | `hud/menu/` | Main menu buttons (Connect, Launch, Quit) |
+| `ConnectPanel` | 9881 | `hud/menu/` | Host/port input + connect button |
+| `LaunchPanel` | 9882 | `hud/menu/` | Server launch configuration |
+
+## SceneHudManager
+
+`SceneHudManager` owns and coordinates all WorldScene panels. It exposes a narrow interface:
+
+```cpp
+_hudMgr.setup(hud, entities, renderer, inputMgr, sendLine);
+_hudMgr.onTeamAdded(team);
+_hudMgr.onPlayerAdded(player);
+_hudMgr.onPlayerLevelChanged(id, level);
+_hudMgr.onBroadcast(id, msg);
+_hudMgr.onEntitySelected(id);
+_hudMgr.onInventoryChanged(id, inv);
+_hudMgr.onTileClicked(x, y, tile);
+_hudMgr.onTimeUnitChanged(tu);
+_hudMgr.tick(dt);
+
+// Panel accessors for callback wiring:
+_hudMgr.leaderboard()
+_hudMgr.teamDetail()
+_hudMgr.chat()
+_hudMgr.playerInfo()
+_hudMgr.speedPanel()
+_hudMgr.settingsPanel()
+```
+
+Wire panel callbacks in `WorldScene`'s constructor after `_hudMgr.setup(...)`:
+
+```cpp
+_hudMgr.teamDetail().setOnFollowClick([this](uint32_t id) {
+    handleEvent(event::Event{event::LogicEvent{event::EntitySelectedEvent{id}}});
+    if (!_camera.isFollowing())
+        _camCtrl.onFollowToggle(_selectedPlayerId, _entities, _hud);
+});
+```
 
 ## Adding a new panel
 
 1. Pick a free entity ID (see [ARCHITECTURE.md](ARCHITECTURE.md#entity-id-allocation)).
 2. Write a provider in `src/scene/hud/<feature>/`.
-3. Write a panel class that owns the provider and exposes setup/event methods.
-4. Instantiate it in `SceneHudManager` (or directly in `WorldScene` for standalone panels).
+3. Write a panel class that owns the provider and exposes `setup()` + event methods.
+4. Add it to `SceneHudManager` (or directly in `WorldScene` for standalone panels).
 5. Wire callbacks in `WorldScene`'s constructor after `_hudMgr.setup(...)`.
-6. Hook it into `SceneHudManager::onEvent` if it reacts to `WorldEvent`s.
+6. Hook into `SceneHudManager::onEvent` if it reacts to `WorldEvent`s.

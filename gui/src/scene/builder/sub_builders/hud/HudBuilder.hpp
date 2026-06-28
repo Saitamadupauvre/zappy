@@ -28,6 +28,7 @@ class HudBuilder {
         EntityBuilder& isWorldSpaceTag(bool isWorldSpace);
         EntityBuilder& boxSize(const graphic::Vector2f& size);
         EntityBuilder& autoSize();
+        EntityBuilder& fullscreen();
         EntityBuilder& anchorOffset(const graphic::Vector2f& offset);
         EntityBuilder& title(const std::string& text, float fontSize = 14.0f);
         EntityBuilder& hidden();

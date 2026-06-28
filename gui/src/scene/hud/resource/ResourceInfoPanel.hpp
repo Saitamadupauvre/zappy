@@ -7,6 +7,7 @@
 #include "graphic/ITextureLoader.hpp"
 #include "graphic/Types.hpp"
 #include "logger/ContextLogger.hpp"
+#include <array>
 #include <memory>
 
 namespace zappy {
@@ -24,6 +25,7 @@ public:
 private:
     std::shared_ptr<ResourceInfoProvider>            _provider;
     std::shared_ptr<behavior::HudContainerBehavior>  _container;
+    std::array<graphic::TextureHandle, 7>            _textures{};
     ContextLogger _log{"ResourceInfoPanel"};
 };
 

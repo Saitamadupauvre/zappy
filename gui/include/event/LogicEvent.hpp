@@ -33,6 +33,7 @@ struct TeamSelectEvent {
     std::vector<uint32_t> ids;
     bool isSelected;
 };
+struct LanguageChangedEvent {};
 
 using LogicEvent = std::variant<
     EntityMoveToEvent,
@@ -42,7 +43,8 @@ using LogicEvent = std::variant<
     ClickEvent,
     EntitySelectedEvent,
     CameraFollowToggleEvent,
-    TeamSelectEvent
+    TeamSelectEvent,
+    LanguageChangedEvent
 >;
 
 } // namespace event

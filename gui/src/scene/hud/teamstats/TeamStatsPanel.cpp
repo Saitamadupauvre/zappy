@@ -14,7 +14,7 @@ void TeamStatsPanel::setup(HudManager& hud)
         .hud().anchor(graphic::Anchor::TopRight)
         .hud().anchorOffset({10.0f, 175.0f})
         .hud().background(true, {10, 10, 20, 200}, {120, 60, 200, 220})
-        .hud().boxSize({260.0f, 0.0f})
+        .hud().boxSize({260.0f, 400.0f})
         .hud().title("Team Stats", 13.0f)
         .hud().hidden()
         .build();

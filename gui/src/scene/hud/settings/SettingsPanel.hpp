@@ -8,6 +8,7 @@
 #include "graphic/ITextureLoader.hpp"
 #include "graphic/Types.hpp"
 #include "logger/ContextLogger.hpp"
+#include "LanguageSection.hpp"
 #include <memory>
 
 namespace zappy {
@@ -31,6 +32,10 @@ public:
     void setOnSkyMode(std::function<void(int)> fn);
     void setOnGrass(std::function<void(bool)> fn);
     void setOnExitGame(std::function<void()> fn);
+    void setOnLanguageChange(std::function<void(i18n::Language)> fn);
+    void setOnSoundVolume(std::function<void(float)> fn);
+    void setOnMusicVolume(std::function<void(float)> fn);
+    void setOnBackToMenu(std::function<void()> fn);
 
     void toggle();
     bool isVisible() const;
@@ -39,8 +44,10 @@ private:
     std::shared_ptr<behavior::hud::SettingsProvider>     _provider;
     std::shared_ptr<behavior::HudContainerBehavior>      _container;
     class VideoSection*         _videoSection       = nullptr;
+    class AudioSection*         _audioSection       = nullptr;
     class GameDisplaySection*   _gameDisplaySection = nullptr;
     class PikminClickerSection* _pikminSection      = nullptr;
+    class LanguageSection*      _languageSection    = nullptr;
     ContextLogger _log{"SettingsPanel"};
 };
 

@@ -9,13 +9,24 @@ void ResourceInfoPanel::setup(HudManager& hud, graphic::IRenderer& renderer,
 {
     _provider = std::make_shared<ResourceInfoProvider>();
 
-    try {
-        auto texData = loader.loadFromFile("assets/images/pikmin.jpg");
-        auto handle  = renderer.uploadTexture(texData);
-        _provider->setImage(handle, 64.0f, 64.0f);
-    } catch (...) {
-        _log.warn("Failed to load resource info texture");
+    static constexpr const char* RESOURCE_PATHS[7] = {
+        "assets/images/food/apple.jpg",
+        "assets/images/ores/linemate.jpg",
+        "assets/images/ores/deraumere.jpg",
+        "assets/images/ores/sibur.jpg",
+        "assets/images/ores/mendiane.jpg",
+        "assets/images/ores/phiras.jpg",
+        "assets/images/ores/thystame.png"
+    };
+    for (int i = 0; i < 7; ++i) {
+        try {
+            auto texData = loader.loadFromFile(RESOURCE_PATHS[i]);
+            _textures[i] = renderer.uploadTexture(texData);
+        } catch (...) {
+            _log.warn("Failed to load resource info texture ", i);
+        }
     }
+    _provider->setResourceTextures(_textures);
 
     auto entity = EntityBuilder(hud, RESOURCE_INFO_HUD_ID, "hud_resource_info")
         .hud().container(_provider)

@@ -1,5 +1,6 @@
 add_library(zappy_core STATIC
     GameEngine.cpp
+    ProcessSpawner.cpp
     executor/CommandExecutor.cpp
     manager/input/InputManager.cpp
     manager/entity/EntityManager.cpp

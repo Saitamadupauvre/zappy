@@ -179,13 +179,9 @@ std::vector<ElementLayout> LayoutEngine::mediaObjectHButtons(
 
     // --- button row height ---
     float btnRowH = 0.f;
-    float btnTotalW = 0.f;
     for (int i = btnStart; i < n; ++i) {
         btnRowH = std::max(btnRowH, sizes[i].y);
-        btnTotalW += sizes[i].x;
     }
-    if (n - btnStart > 1)
-        btnTotalW += padding * static_cast<float>(n - btnStart - 1);
 
     // --- text stack height ---
     float textH = 0.f;

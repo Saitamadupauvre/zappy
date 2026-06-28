@@ -3,6 +3,7 @@
 #include "behavior/ABehavior.hpp"
 #include "core/manager/entity/EntityManager.hpp"
 #include "graphic/IRenderer.hpp"
+#include <functional>
 #include <vector>
 #include <cstdint>
 
@@ -23,6 +24,8 @@ public:
 
     void onUpdate(graphic::Entity& owner, float dt) override;
     void onEvent(graphic::Entity& owner, const event::Event& ev) override;
+
+    void setOnBurst(std::function<void(graphic::Vector3f)> cb) { _onBurst = std::move(cb); }
 
 private:
     struct Spark {
@@ -53,6 +56,8 @@ private:
     void renderBurst(graphic::IRenderer& r) const;
 
     static float fhash(float a, float b);
+
+    std::function<void(graphic::Vector3f)> _onBurst;
 
     zappy::EntityManager* _entities;
     graphic::EntityID     _selfId;

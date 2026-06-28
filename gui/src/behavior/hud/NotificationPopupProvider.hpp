@@ -3,6 +3,7 @@
 #include "hud/IHudProvider.hpp"
 #include "hud/HudElements.hpp"
 #include "graphic/Types.hpp"
+#include "i18n/I18n.hpp"
 #include <cstdint>
 #include <string>
 

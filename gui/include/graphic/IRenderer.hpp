@@ -58,6 +58,7 @@ class IRenderer {
         virtual SkyboxHandle uploadSkybox() = 0;
         virtual void         drawSkybox(SkyboxHandle handle, float time) = 0;
         virtual void         unloadSkybox(SkyboxHandle handle) = 0;
+        virtual void         setSkyboxShader(SkyboxHandle handle, const std::string& shaderName) = 0;
 
         virtual ModelHandle loadModel(const std::string& path) = 0;
         // Registers a non-owning mesh view over a loaded model so mesh-based
