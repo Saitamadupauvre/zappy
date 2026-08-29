@@ -2,6 +2,20 @@
 
 > A multi-component networked game where autonomous AI agents compete to elevate their Trantorian civilization to level 8.
 
+> This is a school project completed as part of my Bachelor's coursework in Computer Science at Epitech.
+
+## What I did
+
+Group project (multiple teammates). I worked on the networked server/protocol side of the system, alongside teammates who built the 3D GUI client and the Python AI agents (including a reinforcement-learning strategy under `ai/rl/`).
+
+## Skills
+
+- Network protocol design over TCP for a real-time multiplayer game
+- C systems programming (authoritative game-server state, rule enforcement)
+- Multi-language, multi-process system integration (C server, C++/Raylib GUI, Python AI)
+- Team collaboration across independently-built components communicating over a shared protocol
+- Reinforcement learning fundamentals (exposure via the AI component's RL strategy training)
+
 Zappy is an **EPITECH Year-2 end-of-year project** built in three independent components that communicate over TCP:
 
 | Component | Language | Role |
